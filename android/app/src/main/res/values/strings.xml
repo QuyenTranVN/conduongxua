@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Con Duong Xua</string>
+    <string name="title_activity_main">Con Duong Xua</string>
+    <string name="package_name">com.conduongxua.app</string>
+    <string name="custom_url_scheme">com.conduongxua.app</string>
+</resources>

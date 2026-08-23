@@ -1,0 +1,34 @@
+:root{
+  /* palette taken from the mockup */
+  --green-900:#1F2E22; --green-800:#28402F; --green-700:#2F4A36; --green-600:#3B5B44;
+  --green-100:#E6EDE5; --green-050:#F1F5EF;
+  --gold:#C9A227; --gold-soft:#D9BE73; --gold-100:#F4EAD0;
+  --cream:#F7F3EA; --cream-2:#FDFBF6; --paper:#FFFFFF;
+  --ink:#22201B; --ink-2:#5F5A50; --ink-3:#948E81;
+  --line:#E6E0D3; --line-2:#D2CABA;
+
+  --bg:var(--cream); --surface:var(--paper);
+  --text:var(--ink); --text-2:var(--ink-2); --text-3:var(--ink-3);
+  --accent:var(--green-700); --on-accent:#FFFFFF;
+
+  --f-ui:"Be Vietnam Pro",system-ui,-apple-system,sans-serif;
+  --f-display:"Source Serif 4",Georgia,serif;
+
+  --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s5:20px; --s6:24px; --s8:32px; --s10:40px; --s12:48px;
+  --r-sm:8px; --r-md:12px; --r-lg:16px; --r-xl:22px; --r-full:999px;
+  --e1:0 1px 2px rgba(34,32,27,.06);
+  --e2:0 4px 14px rgba(34,32,27,.10);
+  --e3:0 12px 34px rgba(34,32,27,.18);
+  --dur:180ms; --dur-2:320ms; --ease:cubic-bezier(.22,.61,.36,1);
+  --tap:44px; --safe-b:env(safe-area-inset-bottom,0px); --safe-t:env(safe-area-inset-top,0px);
+}
+[data-theme="dark"]{
+  --cream:#12140F; --cream-2:#1A1D17; --paper:#1A1D17;
+  --bg:#12140F; --surface:#1A1D17;
+  --text:#E9E7DD; --text-2:#ADA99B; --text-3:#7E7A6D;
+  --line:#2A2E24; --line-2:#3C4134;
+  --green-100:#232A22; --green-050:#1B2019;
+  --accent:#8FB194; --on-accent:#12140F;
+  --e1:0 1px 2px rgba(0,0,0,.5); --e2:0 4px 16px rgba(0,0,0,.55); --e3:0 14px 38px rgba(0,0,0,.65);
+}
+@media (prefers-reduced-motion:reduce){ :root{ --dur:0ms; --dur-2:0ms; } }
