@@ -36,6 +36,8 @@ const P = {
   check:'m5 12.5 4.5 4.5L19 7',
   temple:'M12 3 4 8h16zM6 8v11M18 8v11M10 8v11M14 8v11M3 21h18',
   sun:'M12 8a4 4 0 1 1 0 8 4 4 0 0 1 0-8M12 2v2.4M12 19.6V22M4.2 4.2l1.7 1.7M18.1 18.1l1.7 1.7M2 12h2.4M19.6 12H22M4.2 19.8l1.7-1.7M18.1 5.9l1.7-1.7',
+  mail:'M3.5 6.5h17v12h-17zM4 7l8 6 8-6',
+  facebook:'M14.5 21v-8h2.8l.5-3h-3.3V8.1c0-.9.4-1.6 1.7-1.6H18V3.8c-.7-.1-1.8-.3-3.1-.3-3 0-5 1.8-5 5.1V10H7v3h2.9v8',
 }
 
 export default function Icon({ name, size = 22, fill = false, style, className }) {

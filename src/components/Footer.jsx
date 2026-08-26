@@ -84,12 +84,12 @@ export default function Footer() {
             <button type='button' className='footer-link' onClick={() => go('about')}>
               {copy.links.about}
             </button>
-            <a href='#' className='footer-link'>
+            <button type='button' className='footer-link' onClick={() => go('contact')}>
               {copy.links.contact}
-            </a>
-            <a href='#' className='footer-link'>
+            </button>
+            <button type='button' className='footer-link' onClick={() => go('privacy')}>
               {copy.links.privacy}
-            </a>
+            </button>
           </div>
         </div>
 

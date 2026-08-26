@@ -16,6 +16,8 @@ import MeditationMethod from './screens/MeditationMethod.jsx'
 import { AudioProvider } from './lib/audio.jsx'
 import AudioDetail from './screens/AudioDetail.jsx'
 import About from './screens/About.jsx'
+import Contact from './screens/Contact.jsx'
+import Privacy from './screens/Privacy.jsx'
 import SupportPracticeDetail from './screens/SupportPracticeDetail.jsx'
 import SupportPracticePlayer from './screens/SupportPracticePlayer.jsx'
 import { MeditationAudioProvider } from './lib/meditationAudio.jsx'
@@ -40,6 +42,8 @@ function Screen() {
     case 'library':   return <Library />
     case 'talk':      return <TalkDetail id={route.id} />
     case 'about':     return <About />
+    case 'contact':   return <Contact />
+    case 'privacy':   return <Privacy />
     case 'support':   return <SupportPracticeDetail id={route.id} />
     case 'support-player': return <SupportPracticePlayer id={route.id} />
     case 'book':      return <Suspense fallback={<div className='empty'>Đang mở sách…</div>}><BookReader id={route.id} /></Suspense>
@@ -52,7 +56,7 @@ function Device() {
   const fullscreen = route.name === 'session' || route.name === 'player' || route.name === 'support-player' || route.name === 'book'
   return (
     <div className="shell">
-      <div className="device">
+      <div className={`device ${route.name === 'contact' ? 'device--wide' : ''}`}>
         {splash && <Splash />}
         <Screen />
         {!fullscreen && <MiniPlayer />}

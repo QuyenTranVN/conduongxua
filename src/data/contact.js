@@ -1,0 +1,36 @@
+export const CONTACT_TRANSLATIONS = {
+  vi: {
+    pageTitle: 'Liên hệ', eyebrow: 'LIÊN HỆ', title: 'Kết nối với Con Đường Xưa',
+    description: 'Nếu bạn có góp ý, phát hiện nội dung cần chỉnh sửa, muốn chia sẻ tài liệu, hoặc muốn đóng góp cho dự án, bạn có thể liên hệ với chúng tôi qua các kênh dưới đây.',
+    email: 'Email', emailDescription: 'Gửi góp ý, báo lỗi hoặc trao đổi về nội dung.', sendEmail: 'Gửi email',
+    phone: 'Điện thoại', phoneDescription: 'Liên hệ trực tiếp với Con Đường Xưa.', callPhone: 'Gọi điện',
+    facebook: 'Facebook', facebookDescription: 'Theo dõi cập nhật và nhắn tin trực tiếp với Con Đường Xưa.', openFacebook: 'Mở Facebook',
+    comingSoon: 'Sắp cập nhật',
+    contactAbout: 'Bạn có thể liên hệ về',
+    reasons: ['Góp ý nội dung', 'Báo lỗi', 'Đóng góp tài liệu', 'Địa điểm thực hành', 'Quyền sử dụng nội dung', 'Hợp tác'],
+    permissionsTitle: 'Nội dung & quyền sử dụng',
+    permissionsDescription: 'Nếu bạn là chủ sở hữu của một nội dung được hiển thị trên Con Đường Xưa và muốn cập nhật thông tin nguồn hoặc trao đổi về quyền sử dụng, xin vui lòng liên hệ với chúng tôi qua email.',
+    contactByEmail: 'Liên hệ qua email',
+    freeTitle: 'Con Đường Xưa là một dự án miễn phí.',
+    freeDescription: 'Mọi góp ý giúp nội dung trở nên chính xác, hữu ích và dễ tiếp cận hơn đều rất quý giá.',
+    thankYou: 'Cảm ơn bạn đã đồng hành.', external: 'mở trong cửa sổ mới', unavailable: 'Thông tin liên hệ đang được cập nhật.',
+  },
+  en: {
+    pageTitle: 'Contact', eyebrow: 'CONTACT', title: 'Connect with Con Đường Xưa',
+    description: 'If you have feedback, notice something that needs correction, would like to share a resource, or want to contribute to the project, you can reach us through the channels below.',
+    email: 'Email', emailDescription: 'Send feedback, report an issue, or contact us about content.', sendEmail: 'Send Email',
+    phone: 'Phone', phoneDescription: 'Contact Con Đường Xưa directly.', callPhone: 'Call',
+    facebook: 'Facebook', facebookDescription: 'Follow project updates or send us a direct message.', openFacebook: 'Open Facebook',
+    comingSoon: 'Coming soon',
+    contactAbout: 'You can contact us about',
+    reasons: ['Content feedback', 'Report an issue', 'Share a resource', 'Practice locations', 'Content permissions', 'Collaboration'],
+    permissionsTitle: 'Content & permissions',
+    permissionsDescription: 'If you own content displayed on Con Đường Xưa and would like to update its attribution or discuss usage permissions, please contact us by email.',
+    contactByEmail: 'Contact by email',
+    freeTitle: 'Con Đường Xưa is a free project.',
+    freeDescription: 'Every contribution that helps make the content more accurate, useful, and accessible is deeply appreciated.',
+    thankYou: 'Thank you for being part of the journey.', external: 'opens in a new window', unavailable: 'Contact details are being updated.',
+  },
+}
+
+export const contactText = (lang = 'vi') => CONTACT_TRANSLATIONS[lang] || CONTACT_TRANSLATIONS.vi
