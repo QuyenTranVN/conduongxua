@@ -4,7 +4,7 @@ import { useApp } from '../lib/store.jsx'
 import Icon from './Icon.jsx'
 
 export default function Footer() {
-  const { lang, setLang, switchTab } = useApp()
+  const { lang, setLang, switchTab, go } = useApp()
   const year = new Date().getFullYear()
 
   const copy =
@@ -81,9 +81,9 @@ export default function Footer() {
 
           <div className='footer-column'>
             <h4>{copy.about}</h4>
-            <a href='#' className='footer-link'>
+            <button type='button' className='footer-link' onClick={() => go('about')}>
               {copy.links.about}
-            </a>
+            </button>
             <a href='#' className='footer-link'>
               {copy.links.contact}
             </a>

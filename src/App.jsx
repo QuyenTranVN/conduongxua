@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react'
 import { AppProvider, useApp } from './lib/store.jsx'
 import { TabBar, MiniPlayer } from './components/Chrome.jsx'
 import Drawer from './components/Drawer.jsx'
@@ -14,9 +15,14 @@ import TalkDetail from './screens/TalkDetail.jsx'
 import MeditationMethod from './screens/MeditationMethod.jsx'
 import { AudioProvider } from './lib/audio.jsx'
 import AudioDetail from './screens/AudioDetail.jsx'
+import About from './screens/About.jsx'
+import SupportPracticeDetail from './screens/SupportPracticeDetail.jsx'
+import SupportPracticePlayer from './screens/SupportPracticePlayer.jsx'
 import { MeditationAudioProvider } from './lib/meditationAudio.jsx'
 import './styles/tokens.css'
 import './styles/app.css'
+
+const BookReader = lazy(() => import('./screens/BookReader.jsx'))
 
 function Screen() {
   const { route } = useApp()
@@ -33,13 +39,17 @@ function Screen() {
     case 'teacher':   return <TeacherDetail id={route.id} />
     case 'library':   return <Library />
     case 'talk':      return <TalkDetail id={route.id} />
+    case 'about':     return <About />
+    case 'support':   return <SupportPracticeDetail id={route.id} />
+    case 'support-player': return <SupportPracticePlayer id={route.id} />
+    case 'book':      return <Suspense fallback={<div className='empty'>Đang mở sách…</div>}><BookReader id={route.id} /></Suspense>
     default:          return <Home />
   }
 }
 
 function Device() {
   const { splash, route } = useApp()
-  const fullscreen = route.name === 'session' || route.name === 'player'
+  const fullscreen = route.name === 'session' || route.name === 'player' || route.name === 'support-player' || route.name === 'book'
   return (
     <div className="shell">
       <div className="device">

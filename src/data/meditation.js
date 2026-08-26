@@ -1,55 +1,10 @@
 export const MEDITATION_METHODS = [
-  {
-    id: 'anapanasati',
-    name: 'Ānāpānasati',
-    nameVi: 'Thiền hơi thở',
-    icon: 'breath',
-    descriptionVi: 'Đặt sự chú ý nhẹ nhàng vào hơi thở.',
-    aboutVi: 'Một phương pháp nuôi dưỡng chánh niệm bằng cách nhận biết hơi thở tự nhiên, không điều khiển hay ép buộc.',
-    suitableVi: 'Phù hợp cho người mới bắt đầu và người muốn làm tâm lắng dịu.',
-    cueVi: 'Nhẹ nhàng đưa sự chú ý trở về với hơi thở.',
-    referencesVi: ['Ānāpānasati là gì?', 'Kinh Ānāpānasati', 'Tư thế ngồi thiền'],
-  },
-  {
-    id: 'metta', name: 'Mettā', nameVi: 'Thiền tâm từ', icon: 'heart',
-    descriptionVi: 'Nuôi dưỡng thiện ý với chính mình và người khác.',
-    aboutVi: 'Thực hành mở rộng lòng thiện ý, bắt đầu từ bản thân rồi hướng đến những người xung quanh.',
-    suitableVi: 'Phù hợp khi tâm khép kín, căng thẳng hoặc có nhiều chống đối.',
-    cueVi: 'Nguyện cho tôi và mọi người được an lành, thảnh thơi.',
-    referencesVi: ['Mettā là gì?', 'Kinh Từ Bi', 'Cách thực hành tâm từ'],
-  },
-  {
-    id: 'body', name: 'Body Awareness', nameVi: 'Quán sát thân', icon: 'body',
-    descriptionVi: 'Nhận biết cảm giác và chuyển động trong cơ thể.',
-    aboutVi: 'Đưa sự chú ý qua thân để nhận biết trực tiếp cảm giác, tư thế và sự thay đổi.',
-    suitableVi: 'Phù hợp khi tâm nhiều suy nghĩ hoặc cần trở về với trải nghiệm hiện tại.',
-    cueVi: 'Cảm nhận cơ thể như nó đang là, không cần điều chỉnh.',
-    referencesVi: ['Quán thân là gì?', 'Bốn oai nghi', 'Thư giãn thân đúng cách'],
-  },
-  {
-    id: 'walking', name: 'Walking Meditation', nameVi: 'Thiền hành', icon: 'walk',
-    descriptionVi: 'Giữ sự tỉnh thức trong từng bước chân.',
-    aboutVi: 'Thực hành chánh niệm khi đi, biết rõ chuyển động của chân và toàn thân.',
-    suitableVi: 'Phù hợp khi buồn ngủ, bồn chồn hoặc khó ngồi lâu.',
-    cueVi: 'Biết rõ bàn chân khi nhấc lên, di chuyển và đặt xuống.',
-    referencesVi: ['Cách thiết lập đường thiền hành', 'Nhịp đi tự nhiên', 'Chánh niệm trong chuyển động'],
-  },
-  {
-    id: 'silent', name: 'Silent Meditation', nameVi: 'Thiền im lặng', icon: 'lotus',
-    descriptionVi: 'Thực hành không có lời hướng dẫn.',
-    aboutVi: 'Một khoảng thực hành tự chủ với chuông bắt đầu và kết thúc, không có âm thanh hướng dẫn.',
-    suitableVi: 'Phù hợp với người đã biết phương pháp mình muốn thực hành.',
-    cueVi: 'Yên lặng nhận biết điều đang có mặt.',
-    referencesVi: ['Chuẩn bị cho buổi thiền im lặng', 'Làm việc với phóng tâm', 'Kết thúc buổi thiền'],
-  },
-  {
-    id: 'vipassana', name: 'Vipassanā', nameVi: 'Thiền Vipassanā', icon: 'lotus',
-    descriptionVi: 'Thực hành theo bài hướng dẫn của Thiền sư S.N. Goenka.',
-    aboutVi: 'Bài thực hành Vipassanā có hướng dẫn bằng âm thanh trong một giờ.',
-    suitableVi: 'Phù hợp với người muốn thực hành trọn vẹn theo bài hướng dẫn dài.',
-    cueVi: 'Lắng nghe lời hướng dẫn và duy trì sự tỉnh thức.',
-    referencesVi: ['Thông tin bài hướng dẫn đang được bổ sung'],
-  },
+  { id: 'anapanasati', name: 'Ānāpānasati', nameVi: 'Thiền hơi thở', icon: 'breath', descriptionVi: 'Đặt sự chú ý nhẹ nhàng vào hơi thở.', aboutVi: 'Một phương pháp nuôi dưỡng chánh niệm bằng cách nhận biết hơi thở tự nhiên, không điều khiển hay ép buộc.', suitableVi: 'Phù hợp cho người mới bắt đầu và người muốn làm tâm lắng dịu.', cueVi: 'Nhẹ nhàng đưa sự chú ý trở về với hơi thở.', referencesVi: ['Ānāpānasati là gì?', 'Kinh Ānāpānasati', 'Tư thế ngồi thiền'] },
+  { id: 'metta', name: 'Mettā', nameVi: 'Thiền tâm từ', icon: 'heart', descriptionVi: 'Nuôi dưỡng thiện ý với chính mình và người khác.', aboutVi: 'Thực hành mở rộng lòng thiện ý, bắt đầu từ bản thân rồi hướng đến những người xung quanh.', suitableVi: 'Phù hợp khi tâm khép kín, căng thẳng hoặc có nhiều chống đối.', cueVi: 'Nguyện cho tôi và mọi người được an lành, thảnh thơi.', referencesVi: ['Mettā là gì?', 'Kinh Từ Bi', 'Cách thực hành tâm từ'] },
+  { id: 'body', name: 'Body Awareness', nameVi: 'Quán sát thân', icon: 'body', descriptionVi: 'Nhận biết cảm giác và chuyển động trong cơ thể.', aboutVi: 'Đưa sự chú ý qua thân để nhận biết trực tiếp cảm giác, tư thế và sự thay đổi.', suitableVi: 'Phù hợp khi tâm nhiều suy nghĩ hoặc cần trở về với trải nghiệm hiện tại.', cueVi: 'Cảm nhận cơ thể như nó đang là, không cần điều chỉnh.', referencesVi: ['Quán thân là gì?', 'Bốn oai nghi', 'Thư giãn thân đúng cách'] },
+  { id: 'walking', name: 'Walking Meditation', nameVi: 'Thiền hành', icon: 'walk', descriptionVi: 'Giữ sự tỉnh thức trong từng bước chân.', aboutVi: 'Thực hành chánh niệm khi đi, biết rõ chuyển động của chân và toàn thân.', suitableVi: 'Phù hợp khi buồn ngủ, bồn chồn hoặc khó ngồi lâu.', cueVi: 'Biết rõ bàn chân khi nhấc lên, di chuyển và đặt xuống.', referencesVi: ['Cách thiết lập đường thiền hành', 'Nhịp đi tự nhiên', 'Chánh niệm trong chuyển động'] },
+  { id: 'silent', name: 'Silent Meditation', nameVi: 'Thiền im lặng', icon: 'lotus', descriptionVi: 'Thực hành không có lời hướng dẫn.', aboutVi: 'Một khoảng thực hành tự chủ với chuông bắt đầu và kết thúc, không có âm thanh hướng dẫn.', suitableVi: 'Phù hợp với người đã biết phương pháp mình muốn thực hành.', cueVi: 'Yên lặng nhận biết điều đang có mặt.', referencesVi: ['Chuẩn bị cho buổi thiền im lặng', 'Làm việc với phóng tâm', 'Kết thúc buổi thiền'] },
+  { id: 'vipassana', name: 'Vipassanā', nameVi: 'Thiền Vipassanā', icon: 'lotus', descriptionVi: 'Thực hành theo bài hướng dẫn của Thiền sư S.N. Goenka.', aboutVi: 'Bài thực hành Vipassanā có hướng dẫn bằng âm thanh trong một giờ.', suitableVi: 'Phù hợp với người muốn thực hành trọn vẹn theo bài hướng dẫn dài.', cueVi: 'Lắng nghe lời hướng dẫn và duy trì sự tỉnh thức.', referencesVi: ['Thông tin bài hướng dẫn đang được bổ sung'] },
 ]
 
 export const MEDITATION_AUDIO_CREDIT = {
@@ -93,18 +48,7 @@ export const SUPPORTING_PRACTICES = [
   { id: 'rest', titleVi: 'Chuẩn bị nghỉ ngơi', descriptionVi: 'Khép lại ngày bằng sự tỉnh thức.', duration: 15, icon: 'moon' },
 ]
 
-export const GUIDANCE_LABELS = {
-  guided: 'Có hướng dẫn',
-  silent: 'Im lặng',
-}
-
-export const GUIDANCE_DESCRIPTIONS = {
-  guided: 'Có lời hướng dẫn trong suốt buổi thiền.',
-  silent: 'Không lời hướng dẫn, chỉ có chuông.',
-}
-
+export const GUIDANCE_LABELS = { guided: 'Có hướng dẫn', silent: 'Im lặng' }
+export const GUIDANCE_DESCRIPTIONS = { guided: 'Có lời hướng dẫn trong suốt buổi thiền.', silent: 'Không lời hướng dẫn, chỉ có chuông.' }
 export const GUIDANCE_LABELS_EN = { guided: 'Guided', silent: 'Silent' }
-export const GUIDANCE_DESCRIPTIONS_EN = {
-  guided: 'Guidance throughout the meditation.',
-  silent: 'No spoken guidance, only bells.',
-}
+export const GUIDANCE_DESCRIPTIONS_EN = { guided: 'Guidance throughout the meditation.', silent: 'No spoken guidance, only bells.' }

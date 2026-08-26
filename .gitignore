@@ -7,3 +7,7 @@ dist
 !.env.example
 .vercel
 public/audio/
+.node-portable/
+.node-portable.zip
+.mingit-portable/
+mingit-portable.zip

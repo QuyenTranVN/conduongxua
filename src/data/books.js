@@ -1,0 +1,43 @@
+export const BOOKS = [
+  {
+    id: 'satipatthana-con-duong-thang-toi-chung-ngo',
+    title: 'Satipaṭṭhāna: Con Đường Thẳng Tới Chứng Ngộ',
+    author: 'Bhikkhu Anālayo',
+    contributor: 'Dịch giả: Dhammaruci Nguyễn Văn Ngân',
+    language: 'Tiếng Việt',
+    fileUrl: '/Books/Con%20Duong%20Thang%20Toi%20Chung%20ngo.pdf',
+  },
+  {
+    id: 'lo-trinh-tam-va-sac-phap',
+    title: 'Lộ Trình Tâm và Sắc Pháp',
+    author: 'Bhaddanta Dr. Rewata Dhamma',
+    contributor: 'Dịch giả: Pháp Triều',
+    language: 'Tiếng Việt',
+    fileUrl: '/Books/L%E1%BB%99-tr%C3%ACnh-t%C3%A2m-v%C3%A0-s%E1%BA%AFc-ph%C3%A1p.pdf',
+  },
+  {
+    id: 'friends-on-the-path',
+    title: 'Friends on the Path',
+    author: 'Ajahn Sundara & Ajahn Candasiri',
+    contributor: 'Amaravati Publications · 2011',
+    language: 'English',
+    fileUrl: '/Books/Friends_on_the_Path_-_Ajahn_Sundara_and_Ajahn_Candasiri.pdf',
+  },
+  {
+    id: 'sanity-in-the-midst-of-uncertainty',
+    title: 'Sanity in the Midst of Uncertainty',
+    author: 'Ajahn Munindo',
+    contributor: 'Aruno Publications · 2018',
+    language: 'English',
+    fileUrl: '/Books/sanity-uncertainty-desktop-2019-03-12.pdf',
+  },
+  {
+    id: 'walking-still',
+    title: 'Walking Still',
+    subtitle: 'From the Heights of the Himalayas to the Depths of the Mind',
+    author: 'Marla Sutherland',
+    contributor: 'Sushila Press · 2017',
+    language: 'English',
+    fileUrl: '/Books/Walking_Still.pdf',
+  },
+]

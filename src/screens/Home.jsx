@@ -4,7 +4,7 @@ import { AppBar } from '../components/Chrome.jsx'
 import Footer from '../components/Footer.jsx'
 import Icon from '../components/Icon.jsx'
 import Img from '../components/Img.jsx'
-import { DAILY_PRACTICE, TALKS, teacherById } from '../data/content.js'
+import { TALKS, teacherById } from '../data/content.js'
 import { meditationService } from '../services/meditationService.js'
 import { greeting, uiText } from '../lib/format.js'
 import { useApp } from '../lib/store.jsx'
@@ -47,6 +47,8 @@ export default function Home() {
   const { go, switchTab, lang } = useApp()
   const { play, currentItem, getProgress } = useAudio()
   const copy = uiText(lang)
+  const hour = new Date().getHours()
+  const greetingIcon = hour >= 5 && hour < 18 ? '☀️' : '🌙'
   const cont = currentItem || audioService.getAll()[0]
   const contProgress = getProgress(cont.id)
   const rec = TALKS[4]
@@ -73,7 +75,7 @@ export default function Home() {
         <main className='home-page__inner'>
           <section className='home-intro'>
             <h2 className='h1'>
-              {greeting(lang)} <span aria-hidden='true'>🌙</span>
+              {greeting(lang)} <span aria-hidden='true'>{greetingIcon}</span>
             </h2>
             <p
               className='tc'
@@ -172,41 +174,6 @@ export default function Home() {
               </button>
             </section>
           </div>
-
-          <section>
-            <div className='sec'>{copy.home.todaysPractice}</div>
-            <div className='card'>
-              {DAILY_PRACTICE.map((step) => (
-                <button
-                  key={step.n}
-                  className='row'
-                  onClick={() =>
-                    step.kind === 'talk'
-                      ? (play(step.talkId), go('player', step.talkId))
-                      : go('session', String(step.minutes))
-                  }
-                >
-                  <span
-                    style={{ color: 'var(--gold)', display: 'grid', placeItems: 'center', width: 22 }}
-                  >
-                    <Icon name='clock' size={18} />
-                  </span>
-                  <span className='tl' style={{ flex: '0 0 54px' }}>
-                    {step.kind === 'talk' ? 11 : step.minutes} {copy.meditate.minute}
-                  </span>
-                  <span className='grow tc' style={{ color: 'var(--text)' }}>
-                    {step.n === 1 || step.n === 2
-                      ? copy.home.breathingMeditation
-                      : step.n === 3
-                        ? copy.home.dhammaTalk
-                        : step.n === 4
-                          ? copy.home.quietReflection
-                          : step.title}
-                  </span>
-                </button>
-              ))}
-            </div>
-          </section>
 
           <Footer />
         </main>
