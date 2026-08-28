@@ -15,21 +15,17 @@ export default function SupportPracticePlayer({ id }) {
   const [playing, setPlaying] = useState(true)
   const startedAt = useRef(saved?.startedAt || new Date().toISOString())
   const previousStep = useRef(0)
-  const lastTickAt = useRef(Date.now())
   const lastSavedSecond = useRef(-1)
   const active = useMemo(() => supportPracticeService.getActiveStep(practice, elapsed), [practice, elapsed])
+  const durationSeconds = practice?.durationSeconds || 0
 
   useEffect(() => {
-    if (!playing || !practice || elapsed >= practice.durationSeconds) return
-    lastTickAt.current = Date.now()
-    const timer = window.setInterval(() => setElapsed((value) => {
-      const now = Date.now()
-      const elapsedSeconds = Math.max(0, (now - lastTickAt.current) / 1000)
-      lastTickAt.current = now
-      return Math.min(practice.durationSeconds, value + elapsedSeconds)
-    }), 1000)
+    if (!playing || !durationSeconds) return
+    const timer = window.setInterval(() => {
+      setElapsed((value) => Math.min(durationSeconds, Math.floor(value) + 1))
+    }, 1000)
     return () => window.clearInterval(timer)
-  }, [playing, practice, elapsed >= practice?.durationSeconds])
+  }, [playing, durationSeconds])
 
   useEffect(() => {
     if (!practice) return
@@ -48,7 +44,6 @@ export default function SupportPracticePlayer({ id }) {
     const preserveProgress = () => {
       if (!practice || elapsed <= 0 || elapsed >= practice.durationSeconds) return
       supportPracticeService.saveProgress({ practiceId: practice.id, startedAt: startedAt.current, progressSeconds: elapsed, completed: false })
-      if (document.visibilityState === 'visible') lastTickAt.current = Date.now()
     }
     document.addEventListener('visibilitychange', preserveProgress)
     window.addEventListener('pagehide', preserveProgress)
@@ -60,8 +55,9 @@ export default function SupportPracticePlayer({ id }) {
 
   if (!supportPracticeService.isPlayable(practice) || !active) return <div className='dark-screen'><div className='inner'><button className='iconbtn' onClick={back} aria-label={copy.close}><Icon name='down' /></button><div className='empty' role='status'>{copy.unavailable}</div></div></div>
   const remaining = Math.max(0, practice.durationSeconds - elapsed)
-  const mm = String(Math.floor(remaining / 60)).padStart(2, '0')
-  const ss = String(remaining % 60).padStart(2, '0')
+  const wholeSecondsRemaining = Math.ceil(remaining)
+  const mm = String(Math.floor(wholeSecondsRemaining / 60))
+  const ss = String(wholeSecondsRemaining % 60).padStart(2, '0')
   const stepRemaining = Math.max(0, active.endSeconds - elapsed)
   const jump = (index) => { const seconds = practice.steps.slice(0, index).reduce((sum, step) => sum + step.durationSeconds, 0); setElapsed(seconds) }
   const close = () => { if (elapsed < practice.durationSeconds) supportPracticeService.saveProgress({ practiceId: practice.id, startedAt: startedAt.current, progressSeconds: elapsed, completed: false }); back() }
@@ -69,7 +65,7 @@ export default function SupportPracticePlayer({ id }) {
   return <div className='dark-screen support-player'><div className='support-player__inner'>
     <div className='player-top'><button className='iconbtn' onClick={close} aria-label={copy.close}><Icon name='down' /></button><span className='grow' /><span className='player-mode'>{copy.mode}</span></div>
     <div className='support-player__title'><span className='tm'>{active.index + 1} / {practice.steps.length}</span><h1 className='h2'>{practice.titleVi}</h1></div>
-    <div className='support-player__timer' role='timer'>{mm}:{ss}</div>
+    <div className='support-player__timer' role='timer' aria-label={`${mm}:${ss}`}><span>{mm}:</span><span key={wholeSecondsRemaining} className='support-player__seconds'>{ss}</span></div>
     <SupportPracticeVisual compact icon={active.step.icon} imageUrl={active.step.imageUrl} />
     <div className='support-player__instruction'><h2 className='h1'>{active.step.titleVi}</h2><p>{active.step.descriptionVi}</p><span>{Math.ceil(stepRemaining / 60)} {copy.remaining}</span></div>
     <div className='support-player__progress'><span style={{ width: `${(elapsed / practice.durationSeconds) * 100}%` }} /></div>
