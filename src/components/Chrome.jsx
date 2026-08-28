@@ -14,17 +14,12 @@ export function AppBar({ title, left, right, align = 'center' }) {
     <header className={`appbar ${align === 'left' ? 'left' : ''}`}>
       {left ??
         (deep ? (
-          <button className='iconbtn' onClick={back} aria-label='Back'>
+          <button className='iconbtn' onClick={back} aria-label={lang === 'vi' ? 'Quay lại' : 'Back'}>
             <Icon name='back' />
           </button>
         ) : (
-          <button className='iconbtn' onClick={() => setDrawer(true)} aria-label='Your profile'>
-            <Img
-              src='/images/teachers/user.jpg'
-              label='You'
-              round
-              style={{ width: 30, height: 30 }}
-            />
+          <button className='iconbtn' onClick={() => setDrawer(true)} aria-label={lang === 'vi' ? 'Cài đặt' : 'Settings'}>
+            <Icon name='gear' />
           </button>
         ))}
       <h1>{title}</h1>
@@ -38,7 +33,6 @@ const TABS = [
   { id: 'meditate', icon: 'lotus' },
   { id: 'listen', icon: 'ear' },
   { id: 'teachers', icon: 'user' },
-  { id: 'library', icon: 'book' },
 ]
 
 export function TabBar() {
@@ -49,10 +43,9 @@ export function TabBar() {
     meditate: copy.nav.meditate,
     listen: copy.nav.listen,
     teachers: copy.nav.teachers,
-    library: copy.nav.library,
   }
   return (
-    <nav className='tabbar' aria-label='Main'>
+    <nav className='tabbar' aria-label={lang === 'vi' ? 'Điều hướng chính' : 'Main navigation'}>
       {TABS.map((t) => (
         <button
           key={t.id}

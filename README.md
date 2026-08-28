@@ -36,7 +36,10 @@ address it prints from a device on the same Wi-Fi.
 ```bash
 npm run build     # production bundle into dist/
 npm run preview   # serve the built bundle at :4173
+npm test          # focused reliability and content-validation tests
 ```
+
+Run `npm test` and `npm run build` before deployment. Production audio requires `VITE_AUDIO_CDN_URL`; see `.env.example` and `docs/AUDIO_CONTENT.md`. Optional contact and policy links are rendered only when they contain safe configured values.
 
 ---
 

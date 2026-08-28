@@ -1,4 +1,5 @@
 import { SUPPORT_PRACTICES } from '../data/supportPractices.js'
+import { readLocalJson, writeLocalJson } from './localStorageService.js'
 
 const PROGRESS_KEY = 'con-duong-xua:support-practice-progress'
 
@@ -11,7 +12,8 @@ export function isSupportPracticePlayable(practice) {
 }
 
 function readProgress() {
-  try { return JSON.parse(localStorage.getItem(PROGRESS_KEY) || '{}') } catch { return {} }
+  const value = readLocalJson(PROGRESS_KEY, {})
+  return value && typeof value === 'object' && !Array.isArray(value) ? value : {}
 }
 
 export const supportPracticeService = {
@@ -32,9 +34,20 @@ export const supportPracticeService = {
     const step = practice?.steps?.[index]
     return step ? { step, index, startSeconds: cursor - step.durationSeconds, endSeconds: cursor, elapsedInStep: step.durationSeconds } : null
   },
-  getProgress(practiceId) { return readProgress()[practiceId] || null },
+  getProgress(practiceId) {
+    const practice = this.getById(practiceId)
+    const progress = readProgress()[practiceId]
+    if (!practice || !progress || !Number.isFinite(Number(progress.progressSeconds))) return null
+    const seconds = Math.max(0, Math.min(Number(progress.progressSeconds), practice.durationSeconds))
+    return { ...progress, practiceId, progressSeconds: seconds, completed: Boolean(progress.completed) || seconds >= practice.durationSeconds }
+  },
   saveProgress(progress) {
-    try { const all = readProgress(); all[progress.practiceId] = { ...progress, updatedAt: new Date().toISOString() }; localStorage.setItem(PROGRESS_KEY, JSON.stringify(all)) } catch { /* practice still works */ }
+    const practice = this.getById(progress?.practiceId)
+    if (!practice || !Number.isFinite(Number(progress.progressSeconds))) return false
+    const all = readProgress()
+    const seconds = Math.max(0, Math.min(Number(progress.progressSeconds), practice.durationSeconds))
+    all[practice.id] = { ...progress, practiceId: practice.id, progressSeconds: seconds, completed: Boolean(progress.completed) || seconds >= practice.durationSeconds, updatedAt: new Date().toISOString() }
+    return writeLocalJson(PROGRESS_KEY, all)
   },
   completePractice(practiceId, durationSeconds, startedAt) { this.saveProgress({ practiceId, startedAt, progressSeconds: durationSeconds, completed: true }) },
 }

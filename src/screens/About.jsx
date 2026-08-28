@@ -5,7 +5,7 @@ export default function About() {
   const { lang } = useApp()
 
   if (lang === 'en') {
-    return <><AppBar title='About' /><div className='scroll has-mini about-page'>
+    return <><AppBar title='About' /><div className='scroll has-mini about-page buddhist-page-background'>
       <article className='about-article'>
         <figure className='about-hero'>
           <img src='/images/Intro/IMG_5670.jpeg' alt='Hands joined before a Buddha shrine at a temple' />
@@ -68,7 +68,7 @@ export default function About() {
     </div></>
   }
 
-  return <><AppBar title='Giới thiệu' /><div className='scroll has-mini about-page'>
+  return <><AppBar title='Giới thiệu' /><div className='scroll has-mini about-page buddhist-page-background'>
     <article className='about-article'>
       <figure className='about-hero'>
         <img src='/images/Intro/IMG_5670.jpeg' alt='Chắp tay trước Phật điện tại một ngôi chùa' />

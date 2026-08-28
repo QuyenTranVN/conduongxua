@@ -8,6 +8,8 @@ The app never plays a Theravada.vn MP3 URL. Approved recordings follow this path
 
 The frontend receives only `VITE_AUDIO_CDN_URL`. Storage credentials belong only in the terminal or a protected CI secret and must never be added under `src/` or committed.
 
+All listening and guided-meditation URLs are resolved by `src/services/audioStorage.js`. Content may store either a storage-relative path (`Meditation/example.mp3`), a local-style path (`/audio/Meditation/example.mp3`), or an approved absolute URL. Do not concatenate audio URLs inside screens or player components.
+
 ## Storage layout
 
 ```text
@@ -66,5 +68,7 @@ Every Theravada.vn detail page displays: “Audio được chia sẻ với sự 
 ## Player, progress, and favorites
 
 `AudioProvider` owns the app's single HTML audio element. Playback survives internal route changes. Listening progress is stored locally under `con-duong-xua:audio-progress`; an item is completed at 93%. Favorites use `con-duong-xua:audio-favorites`. These storage calls can later be replaced with API endpoints without changing screen components.
+
+Guided meditation uses the same URL resolver and pauses the listening player before it starts. Empty sources are not launchable. Network and media failures remain inside their player and can be retried with the existing play control.
 
 Teacher/audio relationships use `teacherId`. Future APIs can replace `audioService` with `GET /api/audio`, `GET /api/audio/:slug`, and `GET /api/teachers/:slug/audio` while preserving the existing model.

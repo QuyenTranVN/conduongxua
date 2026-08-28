@@ -10,9 +10,9 @@ export default function Img({ src, alt = '', label, className = '', warm = false
   const cls = ['img', warm ? 'warm' : '', round ? 'round' : '', rounded ? 'rounded' : '', className]
     .filter(Boolean).join(' ')
   return (
-    <span className={cls} style={style} role={alt ? 'img' : undefined} aria-label={alt || undefined}>
+    <span className={cls} style={style}>
       {!failed && <img src={src} alt={alt} onError={() => setFailed(true)} loading="lazy" />}
-      {failed && <span className="fallback">{label ?? alt ?? ''}</span>}
+      {failed && <span className="fallback" role={alt ? 'img' : undefined} aria-label={alt || undefined}>{label ?? alt ?? ''}</span>}
     </span>
   )
 }

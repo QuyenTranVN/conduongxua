@@ -32,14 +32,15 @@ export default function Home() {
   const practiceElapsed = continuePractice?.progressSeconds ?? continuePractice?.durationCompleted ?? 0
   const practiceDuration = continuePractice?.durationSeconds || practiceSession?.durationSeconds || 0
   const continueAudio = continueItems[0]
-  const recommendedAudio = audioService.getAll().find((item) => item.id !== continueAudio?.item.id) || audioService.getAll()[0]
+  const playableAudio = audioService.getPlayable()
+  const recommendedAudio = playableAudio.find((item) => item.id !== continueAudio?.item.id) || playableAudio[0]
   const dailySession = meditationService.getRecommendedSession({ duration: 10, previousMethod: meditationService.getRecentPractice()?.methodId, preferredGuidance: meditationService.getPreferredGuidance() })
   const openSession = (session, restart) => session && go('session', JSON.stringify({ sessionId: session.id, minutes: session.durationSeconds / 60, restart, bells: { beginning: restart, interval: false, ending: true } }))
-  const openAudio = (item) => { play(item.id); go('player', item.id) }
+  const openAudio = (item) => { if (play(item.id, playableAudio)) go('player', item.id) }
   const remainingMinutes = continueAudio ? Math.max(1, Math.ceil(((continueAudio.progress.duration || continueAudio.item.duration) - continueAudio.progress.currentTime) / 60)) : 0
 
-  return <><AppBar align='left' title={<span />} right={<button className='iconbtn' aria-label='Notifications'><Icon name='bell' /></button>} />
-    <div className='scroll has-mini home-page'><main className='home-page__inner'>
+  return <><AppBar align='left' title={<span />} right={<span className='iconbtn spacer' />} />
+    <div className='scroll has-mini home-page buddhist-page-background'><main className='home-page__inner'>
       <section className='home-intro'><h2 className='h1'>{greeting(lang)} <span aria-hidden='true'>{hour >= 5 && hour < 18 ? '☀️' : '🌙'}</span></h2>
         <p className='tc' style={{ marginTop: 4, fontSize: 14 }} dangerouslySetInnerHTML={{ __html: copy.home.prompt }} /></section>
       <MeditationBanner lang={lang} onStart={() => openSession(dailySession, true)} />

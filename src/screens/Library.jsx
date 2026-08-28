@@ -42,7 +42,7 @@ export default function Library() {
 
   return <>
     <AppBar align='left' title={copy.nav.library} right={<button className='iconbtn' aria-label={copy.common.search}><Icon name='search' /></button>} />
-    <div className='scroll has-mini library-page'>
+    <div className='scroll has-mini library-page buddhist-page-background'>
       <div className='seg'>{TABS.map((item) => <button key={item.id} aria-pressed={tab === item.id} onClick={() => setTab(item.id)}>{lang === 'en' ? item.en : item.vi}</button>)}</div>
 
       <div className='card' style={{ marginTop: 16 }}>{LIBRARY_SHELVES.map((shelf) => <button key={shelf.id} className='row'><span style={{ color: 'var(--text-2)' }}><Icon name={shelf.icon} size={20} /></span><span className='grow'><span className='tl' style={{ display: 'block' }}>{shelf.label}</span><span className='tc'>{counts[shelf.id] != null ? `${counts[shelf.id]} mục` : shelf.sub}</span></span><Icon name='chev' size={18} style={{ color: 'var(--text-3)' }} /></button>)}</div>

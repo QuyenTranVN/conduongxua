@@ -1,47 +1,81 @@
 import { MEDITATION_METHODS, MEDITATION_SESSIONS } from '../data/meditation.js'
+import { hasPlayableAudio } from './audioStorage.js'
+import { readLocalJson, writeLocalJson, readLocalEnum, writeLocalValue } from './localStorageService.js'
 
 const HISTORY_KEY = 'con-duong-xua:practice-history'
 const GUIDANCE_KEY = 'con-duong-xua:preferred-guidance'
+const isAvailableSession = (session) => session.guidanceType !== 'guided' || hasPlayableAudio(session)
+const customSilentSession = (id) => {
+  const match = /^custom-silent:([a-z0-9-]+):(\d+)$/.exec(String(id || ''))
+  if (!match) return null
+  const durationSeconds = Number(match[2])
+  if (!MEDITATION_METHODS.some((method) => method.id === match[1]) || durationSeconds < 60 || durationSeconds > 7200) return null
+  return { id, titleVi: 'Thiền im lặng', methodId: match[1], durationSeconds, guidanceType: 'silent', language: 'vi', level: 'custom' }
+}
+const findSession = (id) => MEDITATION_SESSIONS.find((session) => session.id === id) || customSilentSession(id)
+const readHistory = () => {
+  const value = readLocalJson(HISTORY_KEY, [])
+  return Array.isArray(value) ? value.filter((item) => item && typeof item === 'object') : []
+}
+const recordSessionId = (record) => record?.sessionId || record?.meditationSessionId || record?.id
+const normalizeProgress = (record) => {
+  const sessionId = recordSessionId(record)
+  const session = findSession(sessionId)
+  if (!session || !isAvailableSession(session)) return null
+  const duration = Number(record.durationSeconds || session.durationSeconds)
+  const progress = Number(record.progressSeconds ?? record.durationCompleted ?? 0)
+  if (!Number.isFinite(duration) || duration <= 0 || !Number.isFinite(progress)) return null
+  const safeProgress = Math.max(0, Math.min(progress, duration))
+  return { ...record, sessionId, meditationSessionId: sessionId, progressSeconds: safeProgress, durationCompleted: safeProgress, durationSeconds: duration, completed: Boolean(record.completed) || safeProgress >= duration }
+}
 
 export const meditationService = {
   getMethods: () => MEDITATION_METHODS,
   getMethod: (id) => MEDITATION_METHODS.find((method) => method.id === id),
-  getSessions: () => MEDITATION_SESSIONS,
-  getSession: (id) => MEDITATION_SESSIONS.find((session) => session.id === id),
-  getSessionsByMethod: (methodId) => MEDITATION_SESSIONS.filter((session) => session.methodId === methodId),
-  getSessionsByTeacher: (teacherId) => MEDITATION_SESSIONS.filter((session) => session.teacherId === teacherId),
+  getSessions: () => MEDITATION_SESSIONS.filter(isAvailableSession),
+  getSession: (id) => findSession(id),
+  getSessionsByMethod: (methodId) => MEDITATION_SESSIONS.filter((session) => session.methodId === methodId && isAvailableSession(session)),
+  getSessionsByTeacher: (teacherId) => MEDITATION_SESSIONS.filter((session) => session.teacherId === teacherId && isAvailableSession(session)),
   getMeditationsByDuration(duration, toleranceMinutes = 2) {
     const target = duration * 60
-    return MEDITATION_SESSIONS.filter((session) => Math.abs(session.durationSeconds - target) <= toleranceMinutes * 60)
+    return MEDITATION_SESSIONS.filter((session) => isAvailableSession(session) && Math.abs(session.durationSeconds - target) <= toleranceMinutes * 60)
   },
   getMeditationsByGuidanceType(guidanceType) {
-    return MEDITATION_SESSIONS.filter((session) => session.guidanceType === guidanceType)
+    return MEDITATION_SESSIONS.filter((session) => session.guidanceType === guidanceType && isAvailableSession(session))
   },
   getRecommendedMeditation({ duration, guidanceType, preferredMethod, previousPractice }) {
     const target = duration * 60
-    const exactMode = MEDITATION_SESSIONS.filter((session) => session.guidanceType === guidanceType)
-    const pool = exactMode.length ? exactMode : MEDITATION_SESSIONS
+    const available = MEDITATION_SESSIONS.filter(isAvailableSession)
+    const exactMode = available.filter((session) => session.guidanceType === guidanceType)
+    if (guidanceType === 'silent' && !exactMode.some((session) => session.durationSeconds === target)) {
+      const methodId = MEDITATION_METHODS.some((method) => method.id === preferredMethod) ? preferredMethod : 'silent'
+      return customSilentSession(`custom-silent:${methodId}:${Math.max(60, Math.min(7200, Math.round(target)))}`)
+    }
+    const pool = exactMode.length ? exactMode : available
     const previousMethod = previousPractice?.methodId
     return [...pool].map((session) => ({ session, score: Math.abs(session.durationSeconds - target) / 60 - (session.methodId === preferredMethod ? 3 : 0) - (session.methodId === previousMethod ? 2 : 0) })).sort((a, b) => a.score - b.score)[0]?.session
   },
   getRecommendedSession({ duration, previousMethod, preferredGuidance }) {
     return this.getRecommendedMeditation({ duration, guidanceType: preferredGuidance || 'guided', preferredMethod: previousMethod })
   },
-  getRecentPractice() { try { return JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]')[0] || null } catch { return null } },
+  getRecentPractice() { return readHistory().map(normalizeProgress).find(Boolean) || null },
   getContinuePractice() {
-    try { const history = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]'); return history.find((item) => item.updatedAt && !item.completed && (item.progressSeconds ?? item.durationCompleted ?? 0) > 0) || null } catch { return null }
+    return readHistory().map(normalizeProgress).find((item) => item && item.updatedAt && !item.completed && item.progressSeconds > 0 && item.progressSeconds < item.durationSeconds) || null
   },
-  getPreferredGuidance() { try { const saved = localStorage.getItem(GUIDANCE_KEY); return saved === 'silent' ? 'silent' : 'guided' } catch { return 'guided' } },
-  savePreferredGuidance(guidanceType) { try { localStorage.setItem(GUIDANCE_KEY, guidanceType) } catch { /* optional preference */ } },
+  getPreferredGuidance() { return readLocalEnum(GUIDANCE_KEY, ['guided', 'silent'], 'guided') },
+  savePreferredGuidance(guidanceType) { writeLocalValue(GUIDANCE_KEY, guidanceType === 'silent' ? 'silent' : 'guided') },
   saveProgress(progress) { this.savePracticeSession(progress) },
   discardPractice(sessionId) {
-    try { const current = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]'); localStorage.setItem(HISTORY_KEY, JSON.stringify(current.filter((item) => (item.sessionId || item.meditationSessionId || item.id) !== sessionId))) } catch { /* Stopping still works. */ }
+    writeLocalJson(HISTORY_KEY, readHistory().filter((item) => recordSessionId(item) !== sessionId))
   },
   discardOtherIncompletePractices(activeSessionId) {
-    try { const current = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]'); const filtered = current.filter((item) => { const itemId = item.sessionId || item.meditationSessionId || item.id; return item.completed || itemId === activeSessionId }); localStorage.setItem(HISTORY_KEY, JSON.stringify(filtered)) } catch { /* Starting still works. */ }
+    writeLocalJson(HISTORY_KEY, readHistory().filter((item) => item.completed || recordSessionId(item) === activeSessionId))
   },
   completeSession(progress) { this.savePracticeSession({ ...progress, completed: true, completedAt: new Date().toISOString() }) },
   savePracticeSession(practice) {
-    try { const current = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]'); const practiceKey = practice.sessionId || practice.meditationSessionId || practice.id; const timestampedPractice = { ...practice, updatedAt: new Date().toISOString() }; localStorage.setItem(HISTORY_KEY, JSON.stringify([timestampedPractice, ...current.filter((item) => (item.sessionId || item.meditationSessionId || item.id) !== practiceKey)].slice(0, 20))) } catch { /* Practice still works. */ }
+    const normalized = normalizeProgress(practice)
+    if (!normalized) return false
+    const timestampedPractice = { ...normalized, updatedAt: new Date().toISOString() }
+    return writeLocalJson(HISTORY_KEY, [timestampedPractice, ...readHistory().filter((item) => recordSessionId(item) !== normalized.sessionId)].slice(0, 20))
   },
 }

@@ -73,10 +73,6 @@ export default function Footer() {
               <Icon name='ear' size={13} />
               {copy.links.teachings}
             </button>
-            <button type='button' className='footer-link' onClick={() => switchTab('library')}>
-              <Icon name='book' size={13} />
-              {copy.links.library}
-            </button>
           </div>
 
           <div className='footer-column'>

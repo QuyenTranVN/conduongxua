@@ -18,7 +18,7 @@ export const UI_TEXT = {
       home: 'Trang chủ',
       meditate: 'Thiền',
       listen: 'Nghe',
-      teachers: 'Giảng viên',
+      teachers: 'Các vị thầy',
       library: 'Thư viện',
     },
     home: {
@@ -83,6 +83,9 @@ export const UI_TEXT = {
       pause: 'Tạm dừng',
       resume: 'Tiếp tục',
       endSession: 'Kết thúc buổi thiền',
+      guidedPlaying: 'Đang phát hướng dẫn', guidedPaused: 'Đang tạm dừng', noGuidance: 'Không có lời hướng dẫn. Chỉ có chuông bắt đầu và kết thúc.', done: 'Xong',
+      practiceNow: 'THỰC HÀNH NGAY', timeQuestion: 'Bạn có bao nhiêu thời gian?', continuePractice: 'Tiếp tục thực hành', tapToOpen: 'Chạm để mở trình phát', continueAction: 'Tiếp tục', pauseAction: 'Tạm dừng', withTeachers: 'Thiền cùng các vị thầy', viewAllTeachers: 'Xem tất cả các vị thầy', supportPractices: 'Thực hành hỗ trợ', recommendation: 'ĐỀ XUẤT', start: 'Bắt đầu', later: 'Để sau', practiceChoice: 'Bạn muốn thực hành thế nào?', recommendationHint: 'Gợi ý phù hợp với thời gian của bạn',
+      sessions: 'Các buổi thực hành', all: 'Tất cả', quick: 'Thực hành nhanh', selfPractice: 'Tự thực hành', unavailableMethod: 'Không tìm thấy phương pháp thiền này.', audioCredit: 'Âm thanh được chia sẻ với sự cho phép của',
     },
     listen: {
       forYourEvening: 'Dành cho buổi tối',
@@ -118,6 +121,20 @@ export const UI_TEXT = {
       darkMode: 'Chế độ tối',
       next: 'Tiếp theo',
     },
+    audioBrowse: {
+      title: 'Nghe', searchPlaceholder: 'Tìm bài pháp, vị thầy, kinh…', searchLabel: 'Tìm nội dung âm thanh', continue: 'Nghe tiếp', explore: 'Khám phá', recommended: 'Dành cho bạn', byTeacher: 'Theo vị thầy',
+      categories: { all: 'Tất cả', dhamma: 'Pháp thoại', sutta: 'Kinh', meditation: 'Thiền', chanting: 'Tụng kinh', audiobook: 'Sách nói' },
+      pause: 'Tạm dừng', play: 'Phát', details: 'Chi tiết', unknownTeacher: 'Chưa cập nhật', durationPending: 'Thời lượng đang cập nhật', empty: 'Chưa có nội dung phù hợp.', items: 'bài',
+    },
+    player: {
+      missing: 'Không tìm thấy nội dung âm thanh.', close: 'Đóng trình phát', unsave: 'Bỏ lưu', save: 'Lưu', saved: 'Đã lưu', details: 'Xem chi tiết', previous: 'Bài trước', next: 'Bài tiếp theo', back15: 'Lùi 15 giây', forward15: 'Tiến 15 giây', pause: 'Tạm dừng', play: 'Phát', speed: 'Tốc độ phát', information: 'Thông tin', source: 'Nguồn', original: 'Nội dung gốc',
+    },
+    audioDetail: { content: 'Nội dung', notFound: 'Không tìm thấy nội dung này.', title: 'Chi tiết', unknown: 'Chưa cập nhật', play: 'Phát', unavailable: 'Chưa có âm thanh', saved: 'Đã lưu', save: 'Lưu', description: 'Mô tả', descriptionPending: 'Mô tả đang được biên tập và xác minh.', teacher: 'Về vị thầy', source: 'NGUỒN', sourceLabel: 'Nguồn', original: 'Xem nội dung gốc', sourcePending: 'Liên kết nguồn đang được bổ sung.', categories: { dhamma: 'Pháp thoại', sutta: 'Kinh', meditation: 'Thiền', chanting: 'Tụng kinh', audiobook: 'Sách nói' }, languages: { vi: 'Tiếng Việt', pali: 'Pāli', en: 'English' } },
+    teachersPage: {
+      emptyLineage: 'Chưa có vị thầy trong truyền thống này.', listeningCount: 'bài nghe', meditationCount: 'bài thiền', tradition: 'Truyền thống rừng Thái', lineage: 'Dòng truyền thừa Ajahn Chah', about: 'Giới thiệu', meditate: 'Thiền', listen: 'Nghe', sessions: 'Các buổi thiền', listening: 'Nội dung nghe', noMeditation: 'Chưa có buổi thiền từ vị thầy này.', noAudio: 'Chưa có bản ghi âm đã duyệt từ vị thầy này.', selfPractice: 'Tự thực hành',
+    },
+    errors: { audioUnavailable: 'Nội dung này hiện chưa có âm thanh để phát.', audioPlay: 'Hiện chưa thể phát nội dung này. Vui lòng thử lại sau.', audioSeek: 'Không thể chuyển đến vị trí này. Vui lòng thử lại.', audioTimeout: 'Tải âm thanh quá lâu. Vui lòng kiểm tra mạng và thử lại.', audioLoad: 'Không thể tải âm thanh. Hãy kiểm tra kết nối và thử lại.', meditationUnavailable: 'Bài hướng dẫn này hiện chưa có âm thanh để phát.', meditationPlay: 'Hiện chưa thể phát bài hướng dẫn này.', meditationSeek: 'Không thể chuyển đến vị trí này.' },
+    support: { title: 'Thực hành hỗ trợ', unavailable: 'Nội dung này hiện chưa khả dụng. Vui lòng quay lại sau.', visual: 'Hướng dẫn trực quan', audio: 'Có hướng dẫn', mixed: 'Hướng dẫn kết hợp', plan: 'Bạn sẽ thực hành', continue: 'Tiếp tục', start: 'Bắt đầu', continueFrom: 'Tiếp tục từ phút', mode: 'Thực hành hỗ trợ', close: 'Đóng', previous: 'Bước trước', next: 'Bước tiếp theo', pause: 'Tạm dừng', resume: 'Tiếp tục', remaining: 'phút còn lại trong bước này', step: 'bước' },
   },
   en: {
     greeting: {
@@ -158,6 +175,9 @@ export const UI_TEXT = {
       beginPractice: 'Begin Practice', names: {}, descriptions: {}, cues: {}, closeSession: 'Close session',
       sessionOptions: 'Session options', meditation: 'Meditation', sessionComplete: 'The session is complete.',
       ringBell: 'Ring the bell', pause: 'Pause', resume: 'Resume', endSession: 'End session',
+      guidedPlaying: 'Guidance is playing', guidedPaused: 'Paused', noGuidance: 'No spoken guidance. Only beginning and ending bells.', done: 'Done',
+      practiceNow: 'PRACTICE NOW', timeQuestion: 'How much time do you have?', continuePractice: 'Continue practice', tapToOpen: 'Tap to open the player', continueAction: 'Continue', pauseAction: 'Pause', withTeachers: 'Meditate with teachers', viewAllTeachers: 'View all teachers', supportPractices: 'Supporting practices', recommendation: 'RECOMMENDED', start: 'Start', later: 'Maybe later', practiceChoice: 'How would you like to practise?', recommendationHint: 'Recommended for your available time',
+      sessions: 'Practice sessions', all: 'All', quick: 'Quick practice', selfPractice: 'Self-guided practice', unavailableMethod: 'This meditation method could not be found.', audioCredit: 'Audio shared with permission from',
     },
     listen: {
       forYourEvening: 'For your evening', clear: 'Clear', browseByTopic: 'Browse by topic', play: 'Play',
@@ -181,6 +201,20 @@ export const UI_TEXT = {
       darkMode: 'Dark Mode',
       next: 'Next',
     },
+    audioBrowse: {
+      title: 'Listen', searchPlaceholder: 'Search talks, teachers, or suttas…', searchLabel: 'Search audio content', continue: 'Continue listening', explore: 'Explore', recommended: 'For you', byTeacher: 'By teacher',
+      categories: { all: 'All', dhamma: 'Dhamma talks', sutta: 'Suttas', meditation: 'Meditation', chanting: 'Chanting', audiobook: 'Audiobooks' },
+      pause: 'Pause', play: 'Play', details: 'Details', unknownTeacher: 'Not yet available', durationPending: 'Duration not yet available', empty: 'No matching content is available.', items: 'items',
+    },
+    player: {
+      missing: 'Audio content not found.', close: 'Close player', unsave: 'Remove saved item', save: 'Save', saved: 'Saved', details: 'View details', previous: 'Previous track', next: 'Next track', back15: 'Back 15 seconds', forward15: 'Forward 15 seconds', pause: 'Pause', play: 'Play', speed: 'Playback speed', information: 'Information', source: 'Source', original: 'Original content',
+    },
+    audioDetail: { content: 'Content', notFound: 'This content could not be found.', title: 'Details', unknown: 'Not yet available', play: 'Play', unavailable: 'Audio unavailable', saved: 'Saved', save: 'Save', description: 'Description', descriptionPending: 'A verified description is not yet available.', teacher: 'About the teacher', source: 'SOURCE', sourceLabel: 'Source', original: 'View original content', sourcePending: 'The original source link is not yet available.', categories: { dhamma: 'Dhamma talk', sutta: 'Sutta', meditation: 'Meditation', chanting: 'Chanting', audiobook: 'Audiobook' }, languages: { vi: 'Vietnamese', pali: 'Pāli', en: 'English' } },
+    teachersPage: {
+      emptyLineage: 'No teachers are available in this lineage.', listeningCount: 'listening items', meditationCount: 'meditations', tradition: 'Thai Forest tradition', lineage: 'Ajahn Chah lineage', about: 'About', meditate: 'Meditate', listen: 'Listen', sessions: 'Meditation sessions', listening: 'Listening content', noMeditation: 'No meditation sessions are available from this teacher.', noAudio: 'No approved recordings are available from this teacher.', selfPractice: 'Self-guided practice',
+    },
+    errors: { audioUnavailable: 'Audio is not currently available for this content.', audioPlay: 'This audio cannot be played right now. Please try again.', audioSeek: 'Unable to seek to that position. Please try again.', audioTimeout: 'The audio is taking too long to load. Check your connection and try again.', audioLoad: 'Unable to load the audio. Check your connection and try again.', meditationUnavailable: 'Guided audio is not currently available for this session.', meditationPlay: 'The guided meditation cannot be played right now.', meditationSeek: 'Unable to seek to that position.' },
+    support: { title: 'Supporting practice', unavailable: 'This content is not currently available. Please return later.', visual: 'Visual guidance', audio: 'Guided audio', mixed: 'Combined guidance', plan: 'What you will practise', continue: 'Continue', start: 'Start', continueFrom: 'Continue from minute', mode: 'Supporting practice', close: 'Close', previous: 'Previous step', next: 'Next step', pause: 'Pause', resume: 'Resume', remaining: 'minutes remaining in this step', step: 'step' },
   },
 }
 

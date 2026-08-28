@@ -10,6 +10,7 @@ html,
 body,
 #root {
   height: 100%;
+  min-height: 100dvh;
 }
 body {
   font-family: var(--f-ui);
@@ -27,6 +28,7 @@ button {
   cursor: pointer;
   text-align: left;
 }
+button:disabled { cursor: not-allowed; opacity: .48; }
 input,
 select {
   font: inherit;
@@ -44,13 +46,63 @@ a {
   width: 0;
   height: 0;
 }
+.app-fallback {
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 14px;
+  min-height: 100%;
+  padding: 28px;
+  color: var(--text);
+  background: var(--bg);
+  text-align: center;
+}
+.app-fallback p { max-width: 34ch; color: var(--text-2); }
+
+/* Subtle decorative texture for calm content pages. */
+.buddhist-page-background {
+  position: relative;
+  isolation: isolate;
+  background-color: transparent;
+}
+.buddhist-page-background::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background-image: url('/images/buddhist-pattern.svg');
+  background-repeat: repeat;
+  background-position: center top;
+  background-size: 146px 146px;
+  opacity: .16;
+  pointer-events: none;
+}
+.buddhist-page-background > * {
+  position: relative;
+  z-index: 1;
+}
+@media (min-width: 640px) {
+  .buddhist-page-background::before { background-size: 188px 188px; }
+}
+[data-theme='dark'] .buddhist-page-background::before {
+  opacity: .09;
+}
 
 /* ── device shell ─────────────────────────────── */
 .shell {
   height: 100%;
+  min-height: 100dvh;
   display: flex;
   align-items: center;
   justify-content: center;
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    scroll-behavior: auto !important;
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+  .ring-fill, .support-player__progress span { transition: none !important; }
 }
 .device {
   position: relative;
@@ -73,9 +125,6 @@ a {
       0 30px 80px rgba(0, 0, 0, 0.55),
       0 0 0 10px #14150f,
       0 0 0 11px #3d3a30;
-  }
-  .device.device--wide {
-    width: min(920px, calc(100vw - 48px));
   }
 }
 
@@ -137,7 +186,7 @@ a {
 .tabbar {
   flex: 0 0 auto;
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   background: var(--surface);
   border-top: 1px solid var(--line);
   padding-bottom: var(--safe-b);
@@ -516,6 +565,8 @@ a {
   flex: 1;
   display: flex;
   flex-direction: column;
+  min-height: 0;
+  overflow-y: auto;
   padding: calc(var(--safe-t) + var(--s4)) var(--s5) calc(var(--s8) + var(--safe-b));
 }
 .dark-screen .iconbtn {
@@ -621,9 +672,10 @@ a {
   margin: 0 auto var(--s4);
 }
 
-/* ── drawer (profile) ─────────────────────────── */
+/* ── settings drawer ──────────────────────────── */
 .drawer {
   position: absolute;
+  isolation: isolate;
   top: 0;
   bottom: 0;
   left: 0;
@@ -637,6 +689,22 @@ a {
   transform: translateX(-100%);
   transition: transform var(--dur-2) var(--ease);
 }
+.drawer::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background-image: url('/images/buddhist-pattern.svg');
+  background-repeat: repeat;
+  background-position: center top;
+  background-size: 146px 146px;
+  opacity: .16;
+  pointer-events: none;
+}
+.drawer > * {
+  position: relative;
+  z-index: 1;
+}
 .drawer.on {
   transform: translateX(0);
 }
@@ -647,6 +715,12 @@ a {
   width: 190px;
   opacity: 0.09;
   pointer-events: none;
+}
+@media (min-width: 640px) {
+  .drawer::before { background-size: 188px 188px; }
+}
+[data-theme='dark'] .drawer::before {
+  opacity: .09;
 }
 
 /* ── radios / switches ────────────────────────── */
@@ -972,13 +1046,36 @@ a {
 }
 
 .site-footer {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
   margin-top: var(--s6);
   padding-top: var(--s3);
   border-top: 1px solid var(--line);
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.01), rgba(255, 255, 255, 0));
+  background-color: var(--bg);
+}
+.site-footer::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background-image: url('/images/buddhist-pattern.svg');
+  background-repeat: repeat;
+  background-position: center top;
+  background-size: 146px 146px;
+  opacity: .16;
+  pointer-events: none;
 }
 .footer-inner {
+  position: relative;
+  z-index: 1;
   padding: 0 0 calc(var(--s4) + var(--safe-b));
+}
+@media (min-width: 640px) {
+  .site-footer::before { background-size: 188px 188px; }
+}
+[data-theme='dark'] .site-footer::before {
+  opacity: .09;
 }
 .footer-top {
   display: grid;
@@ -1395,11 +1492,29 @@ a {
   color: #fff;
 }
 .teacher-tabs {
-  gap: var(--s4);
-  overflow-x: auto;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  padding: 5px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  background: color-mix(in srgb, var(--surface) 88%, var(--green-050));
+  overflow: visible;
 }
 .teacher-tabs button {
-  flex: 0 0 auto;
+  min-width: 0;
+  min-height: 42px;
+  padding: 8px 6px;
+  border: 1px solid transparent;
+  border-radius: var(--r-md);
+  background: var(--surface);
+  text-align: center;
+}
+.teacher-tabs button[aria-selected='true'] {
+  border-color: color-mix(in srgb, var(--green-600) 28%, var(--line));
+  background: var(--green-100);
+  color: var(--green-700);
+  font-weight: 650;
 }
 .player-top {
   display: flex;
@@ -1711,7 +1826,7 @@ a {
   line-height: 1.3;
 }
 /* About */
-.about-page { background: var(--cream); }
+.about-page { background: transparent; }
 .about-article { max-width: 680px; margin: 0 auto; padding: 28px 22px 56px; color: var(--text); }
 .about-hero { margin: 0 0 26px; overflow: hidden; aspect-ratio: 16 / 10; border-radius: 20px; background: var(--surface); box-shadow: var(--shadow-sm); }
 .about-hero img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: 55% 47%; }
@@ -1734,7 +1849,7 @@ a {
 .about-signature { color: var(--green-800); font-family: var(--f-display); font-size: 18px !important; font-weight: 700; }
 
 /* contact */
-.contact-page { container-type: inline-size; background: var(--cream); }
+.contact-page { container-type: inline-size; background: transparent; }
 .contact-inner { width: min(100%, 880px); margin: 0 auto; padding: 30px 0 64px; }
 .contact-hero { max-width: 650px; margin: 0 auto 34px; text-align: center; }
 .contact-hero > span { display: block; margin-bottom: 12px; color: var(--green-700); font-size: 12px; font-weight: 750; letter-spacing: .18em; }
@@ -1785,7 +1900,7 @@ a {
 }
 
 /* privacy */
-.privacy-page { container-type: inline-size; background: var(--cream); }
+.privacy-page { container-type: inline-size; background: transparent; }
 .privacy-inner { width: min(100%, 820px); margin: 0 auto; padding: 30px 0 64px; }
 .privacy-hero { max-width: 700px; margin: 0 auto 30px; text-align: center; }
 .privacy-hero > span { color: var(--green-700); font-size: 12px; font-weight: 750; letter-spacing: .18em; }
@@ -1881,3 +1996,112 @@ a {
 .book-reader__navigation button:disabled { opacity: .35; }
 .book-reader__navigation strong { min-width: 60px; text-align: center; color: var(--text-2); font-size: 13px; }
 @media (max-width: 420px) { .book-reader__navigation button span { display: none; } }
+
+/* Gentle elevation above the patterned page texture. */
+.buddhist-page-background :where(
+  .card,
+  .contact-method,
+  .contact-permissions,
+  .privacy-card,
+  .privacy-rights,
+  .privacy-promise,
+  .about-pillars > div,
+  .duration-grid > button
+) {
+  border: 1px solid color-mix(in srgb, var(--line) 84%, #fff);
+  box-shadow:
+    0 8px 24px rgba(38, 53, 44, .09),
+    0 2px 6px rgba(38, 53, 44, .045);
+}
+.buddhist-page-background :where(button.card, a.card, .contact-method[href], .duration-grid > button) {
+  transition: transform var(--dur) var(--ease), box-shadow var(--dur) var(--ease), border-color var(--dur) var(--ease);
+}
+.buddhist-page-background :where(button.card, a.card, .contact-method[href], .duration-grid > button):hover {
+  transform: translateY(-2px);
+  border-color: color-mix(in srgb, var(--green-600) 24%, var(--line));
+  box-shadow:
+    0 12px 30px rgba(38, 53, 44, .12),
+    0 3px 8px rgba(38, 53, 44, .055);
+}
+[data-theme='dark'] .buddhist-page-background :where(
+  .card,
+  .contact-method,
+  .contact-permissions,
+  .privacy-card,
+  .privacy-rights,
+  .privacy-promise,
+  .about-pillars > div,
+  .duration-grid > button
+) {
+  border-color: var(--line);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, .32);
+}
+
+.buddhist-page-background :where(
+  .btn,
+  .hero-banner__cta,
+  .chip,
+  .seg > button,
+  .tabs > button,
+  .quick-guidance__option,
+  .continue-practice__toggle,
+  .audio-row__play,
+  .home-play,
+  .session-row__play
+) {
+  box-shadow:
+    0 5px 14px rgba(38, 53, 44, .12),
+    0 1px 3px rgba(38, 53, 44, .06);
+  transition: transform var(--dur) var(--ease), box-shadow var(--dur) var(--ease), filter var(--dur) var(--ease);
+}
+.buddhist-page-background :where(
+  .btn,
+  .hero-banner__cta,
+  .chip,
+  .seg > button,
+  .tabs > button,
+  .quick-guidance__option,
+  .continue-practice__toggle
+):hover {
+  transform: translateY(-2px);
+  box-shadow:
+    0 8px 20px rgba(38, 53, 44, .16),
+    0 2px 5px rgba(38, 53, 44, .07);
+}
+.buddhist-page-background :where(
+  .btn,
+  .hero-banner__cta,
+  .chip,
+  .seg > button,
+  .tabs > button,
+  .quick-guidance__option,
+  .continue-practice__toggle
+):active {
+  transform: translateY(0) scale(.985);
+  box-shadow: 0 2px 7px rgba(38, 53, 44, .11);
+}
+[data-theme='dark'] .buddhist-page-background :where(
+  .btn,
+  .hero-banner__cta,
+  .chip,
+  .seg > button,
+  .tabs > button,
+  .quick-guidance__option,
+  .continue-practice__toggle,
+  .audio-row__play,
+  .home-play,
+  .session-row__play
+) {
+  box-shadow: 0 6px 18px rgba(0, 0, 0, .34);
+}
+
+/* Neutral controls stay opaque above the patterned background. */
+.buddhist-page-background :where(
+  .btn-ghost,
+  .chip:not([aria-pressed='true']),
+  .seg > button:not([aria-pressed='true']),
+  .tabs > button:not([aria-selected='true']),
+  .quick-guidance__option:not([aria-pressed='true'])
+) {
+  background-color: var(--surface);
+}

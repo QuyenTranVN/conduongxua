@@ -1,6 +1,6 @@
 import { clock } from '../lib/format.js'
 
-export default function Scrubber({ pos, total, onSeek }) {
+export default function Scrubber({ pos, total, onSeek, label = 'Playback position' }) {
   const pct = total ? Math.min(100, (pos / total) * 100) : 0
   const handle = e => {
     const r = e.currentTarget.getBoundingClientRect()
@@ -11,7 +11,7 @@ export default function Scrubber({ pos, total, onSeek }) {
     <div>
       <div className="scrub" onClick={handle} role="slider"
         aria-valuemin={0} aria-valuemax={total} aria-valuenow={Math.floor(pos)}
-        aria-label="Playback position" tabIndex={0}
+        aria-label={label} aria-valuetext={`${clock(pos)} / ${clock(total)}`} tabIndex={0}
         onKeyDown={e => {
           if (e.key === 'ArrowRight') onSeek(Math.min(total, pos + 15))
           if (e.key === 'ArrowLeft') onSeek(Math.max(0, pos - 15))

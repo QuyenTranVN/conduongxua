@@ -2,16 +2,22 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { meditationService } from '../services/meditationService.js'
 import { playBell, playBellSequence, stopBellSequence } from './bell.js'
 import { useAudio } from './audio.jsx'
+import { getAudioUrl, hasPlayableAudio } from '../services/audioStorage.js'
+import { useApp } from './store.jsx'
+import { uiText } from './format.js'
 
 const MeditationAudioContext = createContext(null)
 
 export function MeditationAudioProvider({ children }) {
+  const { lang } = useApp()
+  const errors = uiText(lang).errors
   const listeningAudio = useAudio()
   const audioRef = useRef(null)
   const endBellTimer = useRef(null)
   const suppressPauseSave = useRef(false)
   const startedAt = useRef(null)
   const lastSaved = useRef(-1)
+  const lastTickAt = useRef(Date.now())
   const [sessionId, setSessionId] = useState(null)
   const [playing, setPlaying] = useState(false)
   const [currentTime, setCurrentTime] = useState(0)
@@ -27,6 +33,11 @@ export function MeditationAudioProvider({ children }) {
 
   const startSession = useCallback((nextSession, { restart = false } = {}) => {
     if (!nextSession) return
+    if (nextSession.guidanceType === 'guided' && !hasPlayableAudio(nextSession)) {
+      setPlaying(false)
+      setError(errors.meditationUnavailable)
+      return false
+    }
     if (endBellTimer.current) {
       window.clearTimeout(endBellTimer.current)
       endBellTimer.current = null
@@ -46,13 +57,15 @@ export function MeditationAudioProvider({ children }) {
       setCurrentTime(resumeAt)
       setDuration(nextSession.durationSeconds)
       lastSaved.current = -1
-      if (restart && nextSession.id === sessionId && audioRef.current && nextSession.audioUrl) {
+      lastTickAt.current = Date.now()
+      if (restart && nextSession.id === sessionId && audioRef.current && hasPlayableAudio(nextSession)) {
         audioRef.current.currentTime = 0
-        audioRef.current.play().catch(() => { setPlaying(false); setError('Hiện chưa thể phát bài hướng dẫn này.') })
+        audioRef.current.play().catch(() => { setPlaying(false); setError(errors.meditationPlay) })
       }
     }
     setPlaying(true)
-  }, [sessionId, listeningAudio])
+    return true
+  }, [sessionId, listeningAudio, errors])
   const stopSession = useCallback(() => {
     if (!sessionId) return
     if (endBellTimer.current) {
@@ -70,6 +83,7 @@ export function MeditationAudioProvider({ children }) {
     setError('')
     startedAt.current = null
     lastSaved.current = -1
+    lastTickAt.current = Date.now()
   }, [sessionId])
   const toggle = useCallback(() => {
     if (!sessionId) return
@@ -79,43 +93,53 @@ export function MeditationAudioProvider({ children }) {
         window.clearTimeout(endBellTimer.current)
         endBellTimer.current = null
       }
-      if (audioRef.current && session?.audioUrl) audioRef.current.currentTime = 0
+      if (audioRef.current && hasPlayableAudio(session)) audioRef.current.currentTime = 0
       startedAt.current = new Date().toISOString()
       lastSaved.current = -1
+      lastTickAt.current = Date.now()
       setCurrentTime(0)
       setPlaying(true)
-      if (!session?.audioUrl) playBellSequence(3, .55)
+      if (!hasPlayableAudio(session)) playBellSequence(3, .55)
       return
     }
-    if (!playing && session && !session.audioUrl) playBell(.42)
-    setPlaying((value) => !value)
+    if (!playing && session && !hasPlayableAudio(session)) playBell(.42)
+    setPlaying((value) => {
+      if (!value) lastTickAt.current = Date.now()
+      return !value
+    })
   }, [sessionId, session, playing, currentTime, duration])
   const seekTo = useCallback((seconds) => {
     const el = audioRef.current
     if (!el) return
-    const next = Math.max(0, Math.min(seconds, duration || seconds))
-    el.currentTime = next
-    setCurrentTime(next)
-  }, [duration])
+    if (!Number.isFinite(Number(seconds))) return
+    const next = Math.max(0, Math.min(Number(seconds), duration || Number(seconds)))
+    try { el.currentTime = next; setCurrentTime(next) } catch { setError(errors.meditationSeek) }
+  }, [duration, errors.meditationSeek])
   const seek = useCallback((delta) => seekTo(currentTime + delta), [currentTime, seekTo])
 
   useEffect(() => {
     const el = audioRef.current
-    if (!el || !session?.audioUrl) return
+    if (!el || !hasPlayableAudio(session)) return
+    const url = getAudioUrl(session)
+    if (!url) { setPlaying(false); setError(errors.meditationUnavailable); return }
     if (el.dataset.id !== session.id) {
       el.dataset.id = session.id
-      el.src = session.audioUrl
+      el.src = url
       el.load()
     }
-    if (playing) el.play().catch(() => { setPlaying(false); setError('Hiện chưa thể phát bài hướng dẫn này.') })
+    if (playing) el.play().catch(() => { setPlaying(false); setError(errors.meditationPlay) })
     else el.pause()
-  }, [session, playing])
+  }, [session, playing, errors])
 
   useEffect(() => {
-    if (!playing || !session || session.audioUrl) return
+    if (!playing || !session || hasPlayableAudio(session)) return
+    lastTickAt.current = Date.now()
     const timer = window.setInterval(() => {
       setCurrentTime((value) => {
-        const next = Math.min(value + 1, duration || session.durationSeconds)
+        const now = Date.now()
+        const elapsedSeconds = Math.max(0, (now - lastTickAt.current) / 1000)
+        lastTickAt.current = now
+        const next = Math.min(value + elapsedSeconds, duration || session.durationSeconds)
         const wholeSecond = Math.floor(next)
         if (wholeSecond > 0 && wholeSecond % 5 === 0 && wholeSecond !== lastSaved.current) {
           lastSaved.current = wholeSecond
@@ -133,12 +157,29 @@ export function MeditationAudioProvider({ children }) {
     return () => window.clearInterval(timer)
   }, [playing, session, duration, save])
 
+  useEffect(() => {
+    const preserveProgress = () => {
+      if (!sessionId) return
+      const el = audioRef.current
+      const time = hasPlayableAudio(session) && el ? el.currentTime : currentTime
+      const total = hasPlayableAudio(session) && el ? (el.duration || duration) : duration
+      save(false, time, total)
+      if (document.visibilityState === 'visible') lastTickAt.current = Date.now()
+    }
+    document.addEventListener('visibilitychange', preserveProgress)
+    window.addEventListener('pagehide', preserveProgress)
+    return () => {
+      document.removeEventListener('visibilitychange', preserveProgress)
+      window.removeEventListener('pagehide', preserveProgress)
+    }
+  }, [sessionId, session, currentTime, duration, save])
+
   useEffect(() => () => {
     if (endBellTimer.current) window.clearTimeout(endBellTimer.current)
   }, [])
 
   const value = useMemo(() => ({ session, sessionId, playing, currentTime, duration, error, startSession, stopSession, toggle, seek, seekTo }), [session, sessionId, playing, currentTime, duration, error, startSession, stopSession, toggle, seek, seekTo])
-  return <MeditationAudioContext.Provider value={value}>{children}<audio ref={audioRef} preload='metadata' onLoadedMetadata={(event) => { const el = event.currentTarget; setDuration(el.duration || session?.durationSeconds || 0); if (currentTime > 0) el.currentTime = currentTime }} onTimeUpdate={(event) => { const el = event.currentTarget; const second = Math.floor(el.currentTime); setCurrentTime(el.currentTime); if (second > 0 && second % 5 === 0 && second !== lastSaved.current) { lastSaved.current = second; save(false, el.currentTime, el.duration) } }} onPause={(event) => { if (suppressPauseSave.current) { suppressPauseSave.current = false; return } save(false, event.currentTarget.currentTime, event.currentTarget.duration) }} onEnded={(event) => { setCurrentTime(event.currentTarget.duration); setPlaying(false); save(true, event.currentTarget.duration, event.currentTarget.duration); endBellTimer.current = window.setTimeout(() => { playBellSequence(3, .6); endBellTimer.current = null }, 10000) }} onError={() => { setPlaying(false); setError('Hiện chưa thể phát bài hướng dẫn này.') }} /></MeditationAudioContext.Provider>
+  return <MeditationAudioContext.Provider value={value}>{children}<audio ref={audioRef} preload='metadata' onLoadedMetadata={(event) => { const el = event.currentTarget; setDuration(el.duration || session?.durationSeconds || 0); if (currentTime > 0) el.currentTime = currentTime }} onTimeUpdate={(event) => { const el = event.currentTarget; const second = Math.floor(el.currentTime); setCurrentTime(el.currentTime); if (second > 0 && second % 5 === 0 && second !== lastSaved.current) { lastSaved.current = second; save(false, el.currentTime, el.duration) } }} onPause={(event) => { if (suppressPauseSave.current) { suppressPauseSave.current = false; return } save(false, event.currentTarget.currentTime, event.currentTarget.duration) }} onEnded={(event) => { setCurrentTime(event.currentTarget.duration); setPlaying(false); save(true, event.currentTarget.duration, event.currentTarget.duration); endBellTimer.current = window.setTimeout(() => { playBellSequence(3, .6); endBellTimer.current = null }, 10000) }} onError={() => { setPlaying(false); setError(errors.meditationPlay) }} /></MeditationAudioContext.Provider>
 }
 
 export const useMeditationAudio = () => {

@@ -88,7 +88,7 @@ export const AUDIO_ITEMS = [
   ...AJAHN_BRAHM_MEDITATIONS.map(([part, title, file, duration]) => ({
     id: `ajahn-brahm-thien-dinh-${part}`, slug: `ajahn-brahm-thien-dinh-phan-${part}`,
     title: `Phần ${part} · ${title}`, teacherId: 'brahm', teacher: 'Thiền sư Ajahn Brahm',
-    category: 'meditation' as const, language: 'vi' as const, duration, image: '/images/teachers/brahm.jpg',
+    category: 'meditation' as const, language: 'vi' as const, duration, image: '/images/teachers/ajahn-brahm.jpeg',
     audioPath: brahmPath(file), collection: 'Hướng dẫn thiền định · Ajahn Brahm',
     source: AJAHN_BRAHM_SOURCE, attribution: attributionPending,
   })),

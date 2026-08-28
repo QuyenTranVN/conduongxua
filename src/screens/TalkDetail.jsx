@@ -6,18 +6,20 @@ import { useApp } from '../lib/store.jsx'
 import { talkById, teacherById, TALKS } from '../data/content.js'
 import { useAudio } from '../lib/audio.jsx'
 import { audioService } from '../services/audioService.js'
+import { hasPlayableAudio } from '../services/audioStorage.js'
 
-const TABS = ['About', 'Transcript', 'Topics']
+const TABS = ['About', 'Topics']
 
 export default function TalkDetail({ id }) {
   const { go, bookmarks, toggleBookmark } = useApp()
   const { play } = useAudio()
   const talk = talkById(id)
-  const teacher = teacherById(talk.teacher)
   const [tab, setTab] = useState('About')
+  if (!talk) return <><AppBar title='Talk' /><div className='empty' role='status'>This content could not be found.</div></>
+  const teacher = teacherById(talk.teacher)
   const related = TALKS.filter(t => t.id !== id && t.topics.some(x => talk.topics.includes(x))).slice(0, 4)
   const marked = bookmarks.has(talk.id)
-  const playable = audioService.getById(talk.id)
+  const playable = hasPlayableAudio(audioService.getById(talk.id))
 
   return (
     <>
@@ -25,7 +27,7 @@ export default function TalkDetail({ id }) {
       <div className="scroll flush has-mini">
         <div style={{ position: 'relative' }}>
           <Img src={talk.img} label={talk.title} warm style={{ width: '100%', height: 218, display: 'block' }} />
-          {playable && <button onClick={() => { play(talk.id); go('player', talk.id) }}
+          {playable && <button onClick={() => { if (play(talk.id, audioService.getPlayable())) go('player', talk.id) }}
             aria-label="Play"
             style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center' }}>
             <span style={{ width: 62, height: 62, borderRadius: 999, background: 'rgba(255,255,255,.92)',
@@ -44,8 +46,6 @@ export default function TalkDetail({ id }) {
             <button className="chip" aria-pressed={marked} onClick={() => toggleBookmark(talk.id)}>
               <Icon name="bookmark" size={14} fill={marked} /> {marked ? 'Saved' : 'Save'}
             </button>
-            <button className="chip"><Icon name="list" size={14} /> Playlist</button>
-            <button className="chip"><Icon name="share" size={14} /> Share</button>
           </div>
 
           <div className="tabs" style={{ marginTop: 18 }} role="tablist">
@@ -55,11 +55,6 @@ export default function TalkDetail({ id }) {
           </div>
 
           {tab === 'About' && <p style={{ marginTop: 16, lineHeight: 1.65, fontSize: 15 }}>{talk.about}</p>}
-          {tab === 'Transcript' && (
-            <div className="empty" style={{ padding: '32px 0' }}>
-              No transcript for this talk yet. Transcripts are added as they are produced.
-            </div>
-          )}
           {tab === 'Topics' && (
             <div className="chips" style={{ marginTop: 16 }}>
               {talk.topics.map(t => <span key={t} className="pill">{t}</span>)}

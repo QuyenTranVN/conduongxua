@@ -21,6 +21,7 @@ import Privacy from './screens/Privacy.jsx'
 import SupportPracticeDetail from './screens/SupportPracticeDetail.jsx'
 import SupportPracticePlayer from './screens/SupportPracticePlayer.jsx'
 import { MeditationAudioProvider } from './lib/meditationAudio.jsx'
+import ErrorBoundary from './components/ErrorBoundary.jsx'
 import './styles/tokens.css'
 import './styles/app.css'
 
@@ -56,7 +57,7 @@ function Device() {
   const fullscreen = route.name === 'session' || route.name === 'player' || route.name === 'support-player' || route.name === 'book'
   return (
     <div className="shell">
-      <div className={`device ${route.name === 'contact' ? 'device--wide' : ''}`}>
+      <div className='device'>
         {splash && <Splash />}
         <Screen />
         {!fullscreen && <MiniPlayer />}
@@ -68,5 +69,5 @@ function Device() {
 }
 
 export default function App() {
-  return <AppProvider><AudioProvider><MeditationAudioProvider><Device /></MeditationAudioProvider></AudioProvider></AppProvider>
+  return <ErrorBoundary><AppProvider><AudioProvider><MeditationAudioProvider><Device /></MeditationAudioProvider></AudioProvider></AppProvider></ErrorBoundary>
 }

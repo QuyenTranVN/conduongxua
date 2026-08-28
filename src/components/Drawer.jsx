@@ -1,26 +1,25 @@
 /** @format */
 
 import { useEffect, useState } from 'react'
-import { USER } from '../data/content.js'
 import { uiText } from '../lib/format.js'
 import { useApp } from '../lib/store.jsx'
+import { clearAppLocalData } from '../services/localStorageService.js'
 import Icon from './Icon.jsx'
-import Img from './Img.jsx'
-
-const LINKS = [
-  ['lotus', 'Daily Practice'],
-  ['bookmark', 'Bookmarks'],
-  ['clock', 'History'],
-  ['download', 'Downloads'],
-  ['list', 'Playlists'],
-  ['note', 'Notes'],
-]
 
 export default function Drawer() {
-  const { drawer, setDrawer, theme, setTheme, lang, setLang } = useApp()
+  const { drawer, setDrawer, theme, setTheme, lang, setLang, go } = useApp()
   const [on, setOn] = useState(false)
   const nextLang = lang === 'vi' ? 'en' : 'vi'
   const copy = uiText(lang)
+  const labels = lang === 'vi'
+    ? { settings: 'Cài đặt', about: 'Giới thiệu', contact: 'Liên hệ', privacy: 'Quyền riêng tư', clear: 'Xóa dữ liệu trên thiết bị', confirm: 'Xóa tiến trình, nội dung đã lưu và các tùy chọn trên thiết bị này?' }
+    : { settings: 'Settings', about: 'About', contact: 'Contact', privacy: 'Privacy', clear: 'Clear local data', confirm: 'Clear progress, saved content, and preferences on this device?' }
+  const open = (route) => { setDrawer(false); go(route) }
+  const clearData = () => {
+    if (!window.confirm(labels.confirm)) return
+    clearAppLocalData()
+    window.location.reload()
+  }
   useEffect(() => {
     if (!drawer) return setOn(false)
     const id = requestAnimationFrame(() => setOn(true))
@@ -39,40 +38,9 @@ export default function Drawer() {
         className={`drawer ${on ? 'on' : ''}`}
         role='dialog'
         aria-modal='true'
-        aria-label='Your profile'
+        aria-label={labels.settings}
       >
-        <div className='streak'>
-          <Img
-            src='/images/teachers/user.jpg'
-            label='You'
-            round
-            style={{ width: 46, height: 46 }}
-          />
-          <div>
-            <div className='h3'>{USER.name}</div>
-            <div className='tc'>
-              {USER.rank} · {USER.streakDays} days
-            </div>
-          </div>
-        </div>
-        <div style={{ marginTop: 26 }}>
-          {LINKS.map(([icon, label]) => (
-            <button
-              key={label}
-              className='row'
-              style={{ padding: '12px 0' }}
-              onClick={() => setDrawer(false)}
-            >
-              <Icon name={icon} size={20} />
-              <span className='grow tl'>{label}</span>
-            </button>
-          ))}
-        </div>
-        <div className='divider' />
-        <button className='row' style={{ padding: '12px 0' }}>
-          <Icon name='gear' size={20} />
-          <span className='grow tl'>Settings</span>
-        </button>
+        <div className='h2' style={{ marginBottom: 18 }}>{labels.settings}</div>
         <button className='row' style={{ padding: '12px 0' }} onClick={() => setLang(nextLang)}>
           <Icon name='globe' size={20} />
           <span className='grow tl'>{copy.drawer.language}</span>
@@ -88,6 +56,12 @@ export default function Drawer() {
             onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
           />
         </div>
+        <div className='divider' />
+        <button className='row' style={{ padding: '12px 0' }} onClick={() => open('about')}><Icon name='note' size={20} /><span className='grow tl'>{labels.about}</span><Icon name='chev' size={17} /></button>
+        <button className='row' style={{ padding: '12px 0' }} onClick={() => open('contact')}><Icon name='mail' size={20} /><span className='grow tl'>{labels.contact}</span><Icon name='chev' size={17} /></button>
+        <button className='row' style={{ padding: '12px 0' }} onClick={() => open('privacy')}><Icon name='note' size={20} /><span className='grow tl'>{labels.privacy}</span><Icon name='chev' size={17} /></button>
+        <div className='divider' />
+        <button className='row' style={{ padding: '12px 0' }} onClick={clearData}><Icon name='close' size={20} /><span className='grow tl'>{labels.clear}</span></button>
         <svg
           className='lotus'
           viewBox='0 0 24 24'

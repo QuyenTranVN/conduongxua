@@ -1,6 +1,8 @@
 /** @format */
 
 import { createContext, useContext, useEffect, useMemo, useState } from 'react'
+import { settingsService } from '../services/settingsService.js'
+import { readLocalJson, writeLocalJson } from '../services/localStorageService.js'
 
 const Ctx = createContext(null)
 export const useApp = () => useContext(Ctx)
@@ -11,17 +13,25 @@ export function AppProvider({ children }) {
   const [route, setRoute] = useState({ name: 'home' })
   const [sheet, setSheet] = useState(null) // {type, ...}
   const [drawer, setDrawer] = useState(false)
-  const [theme, setTheme] = useState('light')
-  const [lang, setLang] = useState('vi')
+  const [theme, setThemeState] = useState(settingsService.getTheme)
+  const [lang, setLangState] = useState(settingsService.getLanguage)
   const [splash, setSplash] = useState(true)
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme
+    settingsService.saveTheme(theme)
   }, [theme])
   useEffect(() => {
-    const t = setTimeout(() => setSplash(false), 2200)
+    document.documentElement.lang = lang
+    settingsService.saveLanguage(lang)
+  }, [lang])
+  useEffect(() => {
+    const t = setTimeout(() => setSplash(false), 900)
     return () => clearTimeout(t)
   }, [])
+
+  const setTheme = (nextTheme) => setThemeState(['light', 'dark'].includes(nextTheme) ? nextTheme : 'light')
+  const setLang = (nextLanguage) => setLangState(['vi', 'en'].includes(nextLanguage) ? nextLanguage : 'vi')
 
   // ── navigation ─────────────────────────────────────────
   const go = (name, id) => {
@@ -40,12 +50,17 @@ export function AppProvider({ children }) {
   }
 
   // ── saved state ────────────────────────────────────────
-  const [bookmarks, setBookmarks] = useState(new Set(['t1']))
-  const [downloads, setDownloads] = useState(new Set(['t1', 't3']))
-  const toggleSet = (setter) => (id) =>
+  const readIdSet = (key) => {
+    const saved = readLocalJson(key, [])
+    return new Set(Array.isArray(saved) ? saved.filter((id) => typeof id === 'string') : [])
+  }
+  const [bookmarks, setBookmarks] = useState(() => readIdSet('con-duong-xua:bookmarks'))
+  const [downloads, setDownloads] = useState(() => readIdSet('con-duong-xua:downloads'))
+  const toggleSet = (setter, key) => (id) =>
     setter((prev) => {
       const next = new Set(prev)
       next.has(id) ? next.delete(id) : next.add(id)
+      writeLocalJson(key, [...next])
       return next
     })
 
@@ -68,9 +83,9 @@ export function AppProvider({ children }) {
       splash,
       setSplash,
       bookmarks,
-      toggleBookmark: toggleSet(setBookmarks),
+      toggleBookmark: toggleSet(setBookmarks, 'con-duong-xua:bookmarks'),
       downloads,
-      toggleDownload: toggleSet(setDownloads),
+      toggleDownload: toggleSet(setDownloads, 'con-duong-xua:downloads'),
     }),
     [
       tab,
