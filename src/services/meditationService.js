@@ -47,11 +47,12 @@ export const meditationService = {
     const target = duration * 60
     const available = MEDITATION_SESSIONS.filter(isAvailableSession)
     const exactMode = available.filter((session) => session.guidanceType === guidanceType)
-    if (guidanceType === 'silent' && !exactMode.some((session) => session.durationSeconds === target)) {
+    const exactDuration = exactMode.filter((session) => session.durationSeconds === target)
+    if (guidanceType === 'silent' && !exactDuration.length) {
       const methodId = MEDITATION_METHODS.some((method) => method.id === preferredMethod) ? preferredMethod : 'silent'
       return customSilentSession(`custom-silent:${methodId}:${Math.max(60, Math.min(7200, Math.round(target)))}`)
     }
-    const pool = exactMode.length ? exactMode : available
+    const pool = exactDuration.length ? exactDuration : exactMode.length ? exactMode : available
     const previousMethod = previousPractice?.methodId
     return [...pool].map((session) => ({ session, score: Math.abs(session.durationSeconds - target) / 60 - (session.methodId === preferredMethod ? 3 : 0) - (session.methodId === previousMethod ? 2 : 0) })).sort((a, b) => a.score - b.score)[0]?.session
   },

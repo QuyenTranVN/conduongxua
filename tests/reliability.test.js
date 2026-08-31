@@ -52,6 +52,16 @@ test('meditation continuation rejects corruption and completed records', () => {
   assert.equal(meditationService.getContinuePractice(), null)
 })
 
+test('silent meditation recommendation preserves the selected duration', () => {
+  const session = meditationService.getRecommendedMeditation({
+    duration: 8,
+    guidanceType: 'silent',
+    preferredMethod: 'anapanasati',
+  })
+  assert.equal(session.id, 'silent-8')
+  assert.equal(session.durationSeconds, 8 * 60)
+})
+
 test('settings persist valid values and app clearing is scoped', () => {
   settingsService.saveLanguage('en')
   settingsService.saveTheme('dark')
