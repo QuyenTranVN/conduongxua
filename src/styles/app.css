@@ -59,33 +59,19 @@ a {
 }
 .app-fallback p { max-width: 34ch; color: var(--text-2); }
 
-/* Subtle decorative texture for calm content pages. */
+/* Shared decorative texture. It lives on the device so it remains visible
+   through the full scroll depth of every content page. */
 .buddhist-page-background {
   position: relative;
   isolation: isolate;
   background-color: transparent;
 }
 .buddhist-page-background::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  background-image: url('/images/buddhist-pattern.svg');
-  background-repeat: repeat;
-  background-position: center top;
-  background-size: 146px 146px;
-  opacity: .16;
-  pointer-events: none;
+  content: none;
 }
 .buddhist-page-background > * {
   position: relative;
   z-index: 1;
-}
-@media (min-width: 640px) {
-  .buddhist-page-background::before { background-size: 188px 188px; }
-}
-[data-theme='dark'] .buddhist-page-background::before {
-  opacity: .09;
 }
 
 /* ── device shell ─────────────────────────────── */
@@ -106,12 +92,32 @@ a {
 }
 .device {
   position: relative;
+  isolation: isolate;
   width: 100%;
   height: 100%;
   background: var(--bg);
   overflow: hidden;
   display: flex;
   flex-direction: column;
+}
+.device::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background-image: url('/images/buddhist-pattern.svg');
+  background-repeat: repeat;
+  background-position: center top;
+  background-size: 146px 146px;
+  opacity: .16;
+  pointer-events: none;
+}
+.device > * {
+  position: relative;
+  z-index: 1;
+}
+[data-theme='dark'] .device::before {
+  opacity: .09;
 }
 @media (min-width: 640px) {
   .shell {
@@ -126,6 +132,7 @@ a {
       0 0 0 10px #14150f,
       0 0 0 11px #3d3a30;
   }
+  .device::before { background-size: 188px 188px; }
 }
 
 .scroll {
