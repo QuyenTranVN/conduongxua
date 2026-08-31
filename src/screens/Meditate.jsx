@@ -47,7 +47,7 @@ export default function Meditate() {
 
   return (
     <>
-      <AppBar title={copy.nav.meditate} right={<button className='iconbtn' aria-label='Tùy chỉnh buổi thiền' onClick={() => go('create')}><Icon name='sliders' /></button>} />
+      <AppBar title={copy.nav.meditate} />
       <div className='scroll has-mini meditation-home buddhist-page-background'>
         <section>
           <div className='sec meditation-section-title'><span><small>{copy.meditate.practiceNow}</small>{copy.meditate.timeQuestion}</span></div>
