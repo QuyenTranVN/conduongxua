@@ -14,7 +14,9 @@ function AudioRow({ item, onPlay, onDetail, progress, isPlaying, copy }) {
     <button className='audio-row__main' onClick={() => onPlay(item)} aria-label={`${isPlaying ? copy.pause : copy.play} ${item.title}`} aria-pressed={isPlaying}>
       <Img src={item.image} label={item.title} rounded style={{ width: 52, height: 52 }} />
       <span className='grow'><span className='tl tr' style={{ display: 'block' }}>{item.title}</span><span className='tc' style={{ display: 'block' }}>{item.teacher || copy.unknownTeacher}</span><span className='tm' style={{ display: 'block', marginTop: 2 }}>{progress ? `${clock(progress.currentTime)} / ${clock(progress.duration)}` : item.duration ? `${Math.round(item.duration / 60)} min` : copy.durationPending}</span></span>
-      <span className='audio-row__play' aria-hidden='true'><Icon name={isPlaying ? 'pause' : 'play'} size={16} fill={!isPlaying} /></span>
+      <span className={`audio-row__play${isPlaying ? ' is-playing' : ''}`} aria-hidden='true'>
+        <Icon name={isPlaying ? 'pause' : 'play'} size={isPlaying ? 18 : 16} fill={!isPlaying} />
+      </span>
     </button>
     <button className='audio-row__detail' onClick={() => onDetail(item)} aria-label={`${copy.details}: ${item.title}`}><Icon name='more' size={18} /></button>
   </div>

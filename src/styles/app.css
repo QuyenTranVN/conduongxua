@@ -1668,6 +1668,14 @@ a {
   background: var(--green-700);
   color: #fff;
 }
+.audio-row__play.is-playing {
+  background: var(--green-800, #294c38);
+}
+.audio-row__play.is-playing svg {
+  color: #fff;
+  stroke: #fff;
+  stroke-width: 2.5;
+}
 .audio-row__detail {
   position: absolute;
   right: 3px;
