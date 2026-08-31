@@ -10,8 +10,7 @@ export default function CreateMeditation({ id }) {
   const { go, lang } = useApp()
   const copy = uiText(lang).meditate
   const method = meditationService.getMethod(id) || meditationService.getMethod('anapanasati')
-  const [minutes, setMinutes] = useState(20)
-  const [custom, setCustom] = useState(false)
+  const [minutes, setMinutes] = useState(15)
   const [guidance, setGuidance] = useState('guided')
   const [bells, setBells] = useState({ beginning: true, interval: false, ending: true })
 
@@ -28,19 +27,10 @@ export default function CreateMeditation({ id }) {
         <div className="sec">{copy.duration}</div>
         <div className="card" role="radiogroup" aria-label={copy.duration}>
           {DURATIONS.map(d => (
-            <Row key={d} on={!custom && minutes === d} onClick={() => { setCustom(false); setMinutes(d) }}>
+            <Row key={d} on={minutes === d} onClick={() => setMinutes(d)}>
               {d} {copy.minute}
             </Row>
           ))}
-          <Row on={custom} onClick={() => setCustom(true)}>{copy.custom}</Row>
-          {custom && (
-            <div className="opt">
-              <input type="range" min="1" max="90" value={minutes}
-                onChange={e => setMinutes(+e.target.value)}
-                style={{ flex: 1, accentColor: 'var(--green-700)' }} aria-label={copy.custom} />
-              <span className="tl" style={{ width: 72, textAlign: 'right' }}>{minutes} {copy.minute}</span>
-            </div>
-          )}
         </div>
 
         <div className="sec">{copy.guidance}</div>
