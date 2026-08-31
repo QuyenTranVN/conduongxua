@@ -603,6 +603,9 @@ a {
   background: #f2efe6;
   color: var(--green-900);
 }
+.player-transport .primary[aria-pressed='true'] svg {
+  stroke-width: 2.3;
+}
 .dark-screen .transport button:hover {
   background: rgba(255, 255, 255, 0.12);
 }
