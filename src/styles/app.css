@@ -1714,6 +1714,29 @@ a {
   border-radius: var(--r-full);
   background: var(--line-2);
 }
+.chant-playlist {
+  margin-top: var(--s4);
+}
+.chant-playlist__header {
+  display: flex;
+  align-items: center;
+  gap: var(--s3);
+  padding: var(--s4);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--green-050);
+}
+.chant-playlist__header strong,
+.chant-playlist__header .tc {
+  display: block;
+}
+.chant-playlist__header .tc {
+  margin-top: 3px;
+  line-height: 1.45;
+}
+.chant-playlist .audio-list {
+  margin-top: var(--s2);
+}
 .listen-featured {
   display: grid;
   grid-template-columns: repeat(2, 1fr);

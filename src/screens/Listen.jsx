@@ -7,13 +7,14 @@ import { useAudio } from '../lib/audio.jsx'
 import { useApp } from '../lib/store.jsx'
 import { clock, uiText } from '../lib/format.js'
 
-const CATEGORIES = ['all', 'dhamma', 'sutta', 'meditation', 'chanting', 'audiobook']
+const CATEGORIES = ['all', 'dhamma', 'meditation', 'chanting', 'audiobook']
 
 function AudioRow({ item, onPlay, onDetail, progress, isPlaying, copy }) {
+  const subtitle = item.teacher || (item.category === 'chanting' ? item.collection : copy.unknownTeacher)
   return <div className='audio-row'>
     <button className='audio-row__main' onClick={() => onPlay(item)} aria-label={`${isPlaying ? copy.pause : copy.play} ${item.title}`} aria-pressed={isPlaying}>
       <Img src={item.image} label={item.title} rounded style={{ width: 52, height: 52 }} />
-      <span className='grow'><span className='tl tr' style={{ display: 'block' }}>{item.title}</span><span className='tc' style={{ display: 'block' }}>{item.teacher || copy.unknownTeacher}</span><span className='tm' style={{ display: 'block', marginTop: 2 }}>{progress ? `${clock(progress.currentTime)} / ${clock(progress.duration)}` : item.duration ? `${Math.round(item.duration / 60)} min` : copy.durationPending}</span></span>
+      <span className='grow'><span className='tl tr' style={{ display: 'block' }}>{item.title}</span><span className='tc' style={{ display: 'block' }}>{subtitle}</span><span className='tm' style={{ display: 'block', marginTop: 2 }}>{progress ? `${clock(progress.currentTime)} / ${clock(progress.duration)}` : item.duration ? `${Math.round(item.duration / 60)} min` : copy.durationPending}</span></span>
       <span className={`audio-row__play${isPlaying ? ' is-playing' : ''}`} aria-hidden='true'>
         <Icon name={isPlaying ? 'pause' : 'play'} size={isPlaying ? 18 : 16} fill={!isPlaying} />
       </span>
@@ -28,11 +29,16 @@ export default function Listen() {
   const { play, toggle, currentId, playing, continueItems, getProgress, error } = useAudio()
   const [category, setCategory] = useState('all')
   const [query, setQuery] = useState('')
-  const items = useMemo(() => audioService.search(query, { language: 'vi', category: category === 'all' ? undefined : category }), [query, category])
+  const matchingItems = useMemo(() => audioService.search(query, { language: category === 'chanting' ? undefined : 'vi', category: category === 'all' ? undefined : category }), [query, category])
+  const chantingItems = useMemo(() => audioService.getByCategory('chanting'), [])
+  const suttaItems = useMemo(() => audioService.getByCategory('sutta'), [])
+  const showChantingPlaylist = !query && (category === 'all' || category === 'chanting')
+  const showSuttaPlaylist = !query && category === 'all' && suttaItems.length > 0
+  const items = matchingItems.filter((item) => !(showChantingPlaylist && item.category === 'chanting') && !(showSuttaPlaylist && item.category === 'sutta'))
   const featured = audioService.getFeatured()
   const teachers = [...new Map(audioService.getAll().filter((item) => item.teacherId).map((item) => [item.teacherId, item.teacher])).entries()]
-  const start = (item) => play(item.id, items)
-  const toggleItem = (item) => currentId === item.id ? toggle() : start(item)
+  const start = (item, queue = items) => play(item.id, queue)
+  const toggleItem = (item, queue = items) => currentId === item.id ? toggle() : start(item, queue)
 
   return <><AppBar align='left' title={copy.title} right={<span className='iconbtn spacer' />} /><div className='scroll has-mini listen-page buddhist-page-background'>
     <label className='audio-search'><Icon name='search' size={18} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder={copy.searchPlaceholder} aria-label={copy.searchLabel} /></label>
@@ -40,7 +46,11 @@ export default function Listen() {
 
     {continueItems.length > 0 && <section><div className='sec'>{copy.continue}</div><div className='card'>{continueItems.slice(0, 2).map(({ item, progress }) => <AudioRow copy={copy} key={item.id} item={item} progress={progress} isPlaying={currentId === item.id && playing} onPlay={toggleItem} onDetail={(audio) => go('audio', audio.slug)} />)}</div></section>}
 
-    <section><div className='sec'>{copy.explore}</div><div className='chips scrollx'>{CATEGORIES.map((value) => <button className='chip' key={value} aria-pressed={category === value} onClick={() => setCategory(value)}>{copy.categories[value]}</button>)}</div><div className={`card audio-list ${items.length > 6 ? 'audio-list--scroll' : ''}`}>{items.length ? items.map((item) => <AudioRow copy={copy} key={item.id} item={item} progress={getProgress(item.id)} isPlaying={currentId === item.id && playing} onPlay={toggleItem} onDetail={(audio) => go('audio', audio.slug)} />) : <div className='empty'>{copy.empty}</div>}</div></section>
+    <section><div className='sec'>{copy.explore}</div><div className='chips scrollx'>{CATEGORIES.map((value) => <button className='chip' key={value} aria-pressed={category === value} onClick={() => setCategory(value)}>{copy.categories[value]}</button>)}</div>
+      {showChantingPlaylist && <div className='chant-playlist'><div className='chant-playlist__header'><span className='method-icon'><Icon name='bell' size={18} /></span><span className='grow'><strong>{copy.playlist}</strong><span className='tc'>{copy.playlistDescription}</span></span><span className='tm'>{chantingItems.length} {copy.tracks}</span></div><div className='card audio-list audio-list--scroll'>{chantingItems.map((item) => <AudioRow copy={copy} key={item.id} item={item} progress={getProgress(item.id)} isPlaying={currentId === item.id && playing} onPlay={(audio) => toggleItem(audio, chantingItems)} onDetail={(audio) => go('audio', audio.slug)} />)}</div></div>}
+      {showSuttaPlaylist && <div className='chant-playlist'><div className='chant-playlist__header'><span className='method-icon'><Icon name='book' size={18} /></span><span className='grow'><strong>{copy.suttaPlaylist}</strong><span className='tc'>{copy.suttaPlaylistDescription}</span></span><span className='tm'>{suttaItems.length} {copy.items}</span></div><div className='card audio-list'>{suttaItems.map((item) => <AudioRow copy={copy} key={item.id} item={item} progress={getProgress(item.id)} isPlaying={currentId === item.id && playing} onPlay={(audio) => toggleItem(audio, suttaItems)} onDetail={(audio) => go('audio', audio.slug)} />)}</div></div>}
+      {category !== 'chanting' && <div className={`card audio-list ${items.length > 6 ? 'audio-list--scroll' : ''}`}>{items.length ? items.map((item) => <AudioRow copy={copy} key={item.id} item={item} progress={getProgress(item.id)} isPlaying={currentId === item.id && playing} onPlay={toggleItem} onDetail={(audio) => go('audio', audio.slug)} />) : <div className='empty'>{copy.empty}</div>}</div>}
+    </section>
 
     {featured.length > 0 && !query && category === 'all' && <section><div className='sec'>{copy.recommended}</div><div className='listen-featured'>{featured.map((item) => <button className='card' key={item.id} onClick={() => start(item)}><Img src={item.image} alt='' label={item.title} rounded /><span className='tl'>{item.title}</span><span className='tc'>{item.teacher}</span></button>)}</div></section>}
 

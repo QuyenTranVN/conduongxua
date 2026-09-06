@@ -4,7 +4,7 @@ import { TEACHERS } from '../data/content.js'
 import { hasPlayableAudio } from './audioStorage.js'
 
 const AUDIO_CATEGORIES = new Set(['dhamma', 'sutta', 'meditation', 'chanting', 'audiobook'])
-const AUDIO_LANGUAGES = new Set(['vi', 'pali', 'en'])
+const AUDIO_LANGUAGES = new Set(['vi', 'pali', 'en', 'und'])
 
 export function isSafeWebUrl(value) {
   if (!value || value === 'TO_BE_ADDED') return false

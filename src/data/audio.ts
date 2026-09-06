@@ -1,5 +1,5 @@
 export type AudioCategory = 'dhamma' | 'sutta' | 'meditation' | 'chanting' | 'audiobook'
-export type AudioLanguage = 'vi' | 'pali' | 'en'
+export type AudioLanguage = 'vi' | 'pali' | 'en' | 'und'
 
 export interface AudioItem {
   id: string
@@ -29,7 +29,67 @@ const MEDITATION_SOURCE = { name: 'Thiền Dưỡng Sinh DASIRA NARADA', pageUrl
 const dhammaPath = (file: string) => encodeURI(`Listen/Thien Su Ajahn Chah/Dharma talk/${file}`)
 const meditationPath = (file: string) => encodeURI(`Meditation/${file}`)
 const brahmPath = (file: string) => encodeURI(`Meditation/Huong Dan Thien Dinh/Ajahn Brahm/${file}`)
+const chantingPath = (file: string) => encodeURI(`chanting/${file}`)
+// Keep the directory's macOS decomposed Unicode spelling so Vite resolves the real files.
+const ashInSaranaPath = (file: string) => encodeURI(`Listen/Ashin Sarana Thuye\u0302\u0301t Pha\u0301p Tru\u031ba CN/${file}`)
 const attributionPending = 'Nguồn và thông tin bản quyền đang được bổ sung.'
+const THERAVADA_SOURCE = { name: 'Theravāda.vn', pageUrl: 'https://theravada.vn' }
+const CHANTING_ATTRIBUTION = 'Âm thanh được chia sẻ với sự cho phép của Theravāda.vn.'
+const ASHIN_SARANA_SOURCE = { name: 'Ashin Sarana', pageUrl: 'TO_BE_ADDED' }
+const ASHIN_SARANA_ATTRIBUTION = 'Âm thanh được chia sẻ với sự cho phép của Ashin Sarana.'
+
+const DAILY_CHANTING = [
+  {
+    id: 'chanting-day-1', slug: 'kinh-tung-buoi-ngay-thu-1', title: 'Kinh tụng buổi ngày thứ 1',
+    file: '01 - Kinh Tụng Buổi Ngày Thứ 1.mp3', duration: 1339.675283, language: 'pali' as const,
+    description: 'Gồm các phần trong mục Kinh tụng ngày thứ nhất: Mettā-sutta (Từ Bi Kinh), Jaya-paritta (Kệ Hộ Trì Tối Thắng) và Abhaya-paritta-sutta (Kệ Tiêu Trừ Sợ Hãi).',
+  },
+  {
+    id: 'chanting-day-2-vi', slug: 'kinh-tung-buoi-chieu-thu-2-tieng-viet', title: 'Kinh tụng buổi chiều thứ 2 — Tiếng Việt',
+    file: '02 - Kinh Tụng Chiều Thứ 2 Tiếng Việt.mp3', duration: 1562.935147, language: 'vi' as const,
+    description: 'Bản tiếng Việt của thời kinh tụng ngày thứ hai. Mục lục nguồn ghi Ratana-suttā (Kinh Châu Báu).',
+  },
+  {
+    id: 'chanting-day-3', slug: 'kinh-tung-buoi-chieu-thu-3', title: 'Kinh tụng buổi chiều thứ 3',
+    file: '03 - Kinh Tụng Buổi Chiều Thứ 3.mp3', duration: 1519.490612, language: 'pali' as const,
+    description: 'Gồm các phần trong mục Kinh tụng ngày thứ ba: Buddha-jayamaṅgala (Phật Thắng Hạnh) và Āṭānāṭiya-paritta (Kệ Hộ Trì Āṭānāṭiya).',
+  },
+  {
+    id: 'chanting-day-3-vi', slug: 'kinh-tung-buoi-chieu-thu-3-tieng-viet', title: 'Kinh tụng buổi chiều thứ 3 — Tiếng Việt',
+    file: '04 - Kinh Tụng Buổi Chiều Thứ 3 Tiếng Việt.mp3', duration: 1355.279093, language: 'vi' as const,
+    description: 'Bản tiếng Việt của thời kinh tụng ngày thứ ba. Mục lục nguồn ghi Buddha-jayamaṅgala (Phật Thắng Hạnh) và Āṭānāṭiya-paritta.',
+  },
+  {
+    id: 'chanting-day-4', slug: 'kinh-tung-buoi-chieu-thu-4', title: 'Kinh tụng buổi chiều thứ 4',
+    file: '05 - Kinh Tụng Buổi Chiều Thứ 4.mp3', duration: 1544.682676, language: 'pali' as const,
+    description: 'Gồm các phần trong mục Kinh tụng ngày thứ tư: Maṅgala-sutta (Hạnh Phúc Kinh) và Paṭicca Samuppāda (Thập Nhị Duyên Khởi).',
+  },
+  {
+    id: 'chanting-day-5', slug: 'kinh-tung-buoi-chieu-thu-5', title: 'Kinh tụng buổi chiều thứ 5',
+    file: '06 - Kinh Tụng Buổi Chiều Thứ 5.mp3', duration: 1693.408073, language: 'pali' as const,
+    description: 'Gồm các phần trong mục Kinh tụng ngày thứ năm: Tidasa-pāramī (Tam Thập Độ) và Dhammasaṇganī (Vạn Pháp Tổng Trì).',
+  },
+  {
+    id: 'chanting-day-6', slug: 'kinh-tung-buoi-chieu-thu-6', title: 'Kinh tụng buổi chiều thứ 6',
+    file: '07 - Kinh Tụng Buổi Chiều Thứ 6.mp3', duration: 1309.290658, language: 'pali' as const,
+    description: 'Gồm các phần trong mục Kinh tụng ngày thứ sáu: Pabbajita-abhiṇha (Sa-môn Thường Quán) và Sekhiyā (75 Ưng Học Pháp).',
+  },
+] as const
+
+const ASHIN_SARANA_SUTTAS = [
+  {
+    id: 'ashin-sarana-dhaniya-sutta', slug: 'ashin-sarana-kinh-dhaniya',
+    title: 'Kinh Dhaniya — Cuộc đối thoại giữa Đức Phật và người mục đồng',
+    file: '01 - Kinh Dhaniya Kinh Về Cuộc Đối Thoại Giữa Đức Phật Với Người Mục Đồng.mp3',
+    duration: 630.83102,
+  },
+  {
+    id: 'ashin-sarana-khaggavisana-sutta', slug: 'ashin-sarana-kinh-con-te-nguu-mot-sung',
+    title: 'Kinh Con Tê Ngưu Một Sừng — Khaggavisana Sutta',
+    file: '02 - Kinh Con Tề Ngưu Một Sừng - Khaggavisana Sutta.mp3',
+    duration: 777.560816,
+  },
+] as const
 
 const AJAHN_BRAHM_MEDITATIONS = [
   ['1', 'Hướng dẫn thiền định', 'Phan 1 HUONG-DAN-THIEN-DINH-Thien-su-Ajahn-Brah.mp3', 2018.116],
@@ -43,6 +103,21 @@ const AJAHN_BRAHM_MEDITATIONS = [
 ] as const
 
 export const AUDIO_ITEMS = [
+  ...DAILY_CHANTING.map((item) => ({
+    id: item.id, slug: item.slug, title: item.title, category: 'chanting' as const,
+    language: item.language, duration: item.duration, description: item.description,
+    image: '/images/scenes/practice.jpg', audioPath: chantingPath(item.file),
+    collection: 'Kinh tụng theo ngày', source: THERAVADA_SOURCE,
+    attribution: CHANTING_ATTRIBUTION, permission: { status: 'approved' as const },
+  })),
+  ...ASHIN_SARANA_SUTTAS.map((item) => ({
+    id: item.id, slug: item.slug, title: item.title,
+    teacher: 'Ashin Sarana', category: 'sutta' as const, language: 'vi' as const,
+    duration: item.duration, image: '/images/scenes/monk.jpg',
+    audioPath: ashInSaranaPath(item.file), collection: 'Kinh giảng · Ashin Sarana',
+    source: ASHIN_SARANA_SOURCE, attribution: ASHIN_SARANA_ATTRIBUTION,
+    permission: { status: 'approved' as const },
+  })),
   {
     id: 'ajahn-chah-chuong-1', slug: 'ajahn-chah-con-duong-giua-ben-trong', title: 'Chương 1 · Con đường giữa bên trong, tức Trung đạo',
     teacherId: 'chah', teacher: 'Thiền sư Ajahn Chah', category: 'dhamma', language: 'vi', duration: 1793.776,
