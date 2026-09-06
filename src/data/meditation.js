@@ -13,7 +13,7 @@ export const MEDITATION_AUDIO_CREDIT = {
 
 export const MEDITATION_SESSIONS = [
   { id: 'guided-basic-8', titleVi: 'Thiền định 8 phút', methodId: 'vipassana', durationSeconds: 480, guidanceType: 'guided', language: 'vi', level: 'beginner', audioCredit: 'dasiraNarada', audioUrl: encodeURI('/audio/Meditation/8 phut HUONG-DAN-THIEN-CAN-BAN.mp3') },
-  { id: 'guided-release-15', titleVi: 'Thiền định 15 phút', methodId: 'vipassana', durationSeconds: 900, guidanceType: 'guided', language: 'vi', level: 'beginner', audioCredit: 'dasiraNarada', audioUrl: encodeURI('/audio/Meditation/15-phut-Thien-Buong-Thu-danh-cho-nguoi.mp3') },
+  { id: 'guided-release-15', titleVi: 'Thiền định 15 phút', methodId: 'vipassana', durationSeconds: 900, guidanceType: 'guided', language: 'vi', level: 'beginner', audioCredit: 'dasiraNarada', audioUrl: encodeURI('/audio/Meditation/15-phut-Thien.mp3') },
   { id: 'guided-meditation-30', titleVi: 'Thiền định 30 phút', methodId: 'vipassana', durationSeconds: 1800, guidanceType: 'guided', language: 'vi', level: 'regular', audioCredit: 'dasiraNarada', audioUrl: encodeURI('/audio/Meditation/30 PHÚT THIỀN ĐỊNH.mp3') },
   { id: 'guided-meditation-60', titleVi: 'Thiền định 60 phút', methodId: 'vipassana', durationSeconds: 3600, guidanceType: 'guided', language: 'vi', level: 'regular', audioCredit: 'dasiraNarada', audioUrl: '/audio/Meditation/web-thien-dinh-60.m4a' },
   { id: 'guided-mindfulness-90', titleVi: 'Thiền định 90 phút', methodId: 'vipassana', durationSeconds: 5400, guidanceType: 'guided', language: 'vi', level: 'experienced', audioCredit: 'dasiraNarada', audioUrl: encodeURI('/audio/Meditation/90-PHUT-HUONG-DAN-THIEN-DINH-CHANH-NIEM.mp3') },

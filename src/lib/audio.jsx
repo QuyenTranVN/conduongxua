@@ -22,6 +22,7 @@ export function AudioProvider({ children }) {
   const elementRef = useRef(null)
   const lastPersistedSecond = useRef(-1)
   const loadTimer = useRef(null)
+  const restartIdRef = useRef(null)
   const [currentId, setCurrentId] = useState(null)
   const [queue, setQueue] = useState([])
   const [playing, setPlaying] = useState(false)
@@ -50,6 +51,15 @@ export function AudioProvider({ children }) {
     setPlaying(true)
     return true
   }, [errors.audioUnavailable])
+  const playFromStart = useCallback((id, nextQueue) => {
+    restartIdRef.current = id
+    const started = play(id, nextQueue)
+    const el = elementRef.current
+    if (started && el?.dataset.id === id) {
+      try { el.currentTime = 0; setCurrentTime(0); restartIdRef.current = null } catch { /* metadata will reset it */ }
+    }
+    return started
+  }, [play])
   const pause = useCallback(() => setPlaying(false), [])
   const toggle = useCallback(() => {
     if (!currentId) return
@@ -131,7 +141,7 @@ export function AudioProvider({ children }) {
   const getProgress = useCallback((id) => audioProgressService.get(id), [])
   const continueItems = useMemo(() => audioProgressService.getUnfinished(audioService.getPlayable()), [currentTime])
 
-  const value = useMemo(() => ({ currentItem, currentId, queue, playing, currentTime, duration, rate, error, favorites, play, pause, toggle, seek, seekTo, next, previous, setPlaybackRate, toggleFavorite, getProgress, continueItems, speeds: SPEEDS }), [currentItem, currentId, queue, playing, currentTime, duration, rate, error, favorites, play, pause, toggle, seek, seekTo, next, previous, setPlaybackRate, toggleFavorite, getProgress, continueItems])
+  const value = useMemo(() => ({ currentItem, currentId, queue, playing, currentTime, duration, rate, error, favorites, play, playFromStart, pause, toggle, seek, seekTo, next, previous, setPlaybackRate, toggleFavorite, getProgress, continueItems, speeds: SPEEDS }), [currentItem, currentId, queue, playing, currentTime, duration, rate, error, favorites, play, playFromStart, pause, toggle, seek, seekTo, next, previous, setPlaybackRate, toggleFavorite, getProgress, continueItems])
 
   return <AudioContext.Provider value={value}>{children}<audio ref={elementRef} preload='metadata'
     onCanPlay={() => window.clearTimeout(loadTimer.current)}
@@ -140,7 +150,12 @@ export function AudioProvider({ children }) {
       window.clearTimeout(loadTimer.current)
       const total = Number.isFinite(el.duration) ? el.duration : (currentItem?.duration || 0)
       setDuration(total)
-      const saved = currentItem && getProgress(currentItem.id)
+      const shouldRestart = currentItem && restartIdRef.current === currentItem.id
+      if (shouldRestart) {
+        try { el.currentTime = 0; setCurrentTime(0) } catch { setCurrentTime(0) }
+        restartIdRef.current = null
+      }
+      const saved = !shouldRestart && currentItem && getProgress(currentItem.id)
       if (saved && !saved.completed) {
         const restored = Math.max(0, Math.min(saved.currentTime, total || saved.duration))
         try { el.currentTime = restored; setCurrentTime(restored) } catch { setCurrentTime(0) }
