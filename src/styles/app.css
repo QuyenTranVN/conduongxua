@@ -668,11 +668,37 @@ a {
   max-height: 82%;
   overflow-y: auto;
   padding: var(--s3) var(--s5) calc(var(--s6) + var(--safe-b));
-  transform: translateY(100%);
+  transform: translate3d(0, 100%, 0);
   transition: transform var(--dur-2) var(--ease);
+  will-change: transform;
+  backface-visibility: hidden;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
 }
 .sheet.on {
-  transform: translateY(0);
+  transform: translate3d(0, 0, 0);
+}
+.sheet.quick-practice-sheet {
+  height: 82%;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.quick-practice-sheet__content {
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+  padding: 0 2px;
+}
+.quick-practice-sheet__actions {
+  flex: 0 0 auto;
+  padding: var(--s3) 2px 0;
+  background: var(--surface);
+}
+.quick-practice-sheet__actions .btn + .btn {
+  margin-top: var(--s2);
 }
 .grip {
   width: 38px;
@@ -1357,6 +1383,10 @@ a {
   border-radius: var(--r-md);
   background: var(--green-050);
 }
+.ambient-setup--placeholder {
+  visibility: hidden;
+  pointer-events: none;
+}
 .ambient-setup__label {
   margin-bottom: var(--s3);
   color: var(--text);
@@ -1393,7 +1423,13 @@ a {
 }
 .ambient-volume {
   display: block;
+}
+.ambient-volume-slot {
+  min-height: 66px;
   margin-top: var(--s4);
+}
+.ambient-volume[hidden] {
+  display: none;
 }
 .ambient-volume > span {
   display: flex;

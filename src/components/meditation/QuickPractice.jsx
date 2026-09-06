@@ -69,17 +69,23 @@ export function QuickPracticeSheet({ minutes, onClose, onStart, lang = 'vi', pre
     onStart(recommendation, guidanceType === 'silent' ? { backgroundSound, backgroundVolume, startDelaySeconds: 8, beginningBellHandled: true } : undefined)
   }
 
-  return <Sheet open={Boolean(minutes)} onClose={onClose} label={copy.practiceChoice}>
-    <h3 className='h2'>{copy.practiceChoice}</h3>
-    <p className='tc' style={{ marginTop: 4 }}>{minutes} {copy.minute} · {copy.recommendationHint}</p>
-    <div className='quick-guidance' role='radiogroup' aria-label={lang === 'en' ? 'Choose guidance type' : 'Chọn hình thức hướng dẫn'}>{['guided', 'silent'].map((type) => <GuidanceTypeCard key={type} type={type} selected={guidanceType === type} onSelect={selectGuidance} lang={lang} />)}</div>
-    {guidanceType === 'silent' && <div className='ambient-setup'>
-      <div className='ambient-setup__label'>{copy.backgroundSound}</div>
-      <div className='ambient-options' role='radiogroup' aria-label={copy.backgroundSound}>{AMBIENT_SOUNDS.map((sound) => <button key={sound.id} aria-pressed={backgroundSound === sound.id} onClick={() => setBackgroundSound(sound.id)} aria-label={`${copy.chooseBackground} ${lang === 'en' ? sound.nameEn : sound.nameVi}`}><Icon name={sound.icon || (sound.id === 'none' ? 'close' : sound.id === 'white_noise' ? 'sliders' : sound.id)} size={17} /><span>{lang === 'en' ? sound.nameEn : sound.nameVi}</span></button>)}</div>
-      {backgroundSound !== 'none' && <label className='ambient-volume'><span><strong>{copy.backgroundVolume}</strong><span>{Math.round(backgroundVolume * 100)}%</span></span><input type='range' min='0' max='100' step='1' value={Math.round(backgroundVolume * 100)} onChange={(event) => setBackgroundVolume(Number(event.target.value) / 100)} aria-label={`${copy.backgroundVolume} ${Math.round(backgroundVolume * 100)} ${copy.percent}`} /></label>}
-    </div>}
-    <RecommendedMeditationCard session={recommendation} lang={lang} />
-    <button className='btn btn-primary btn-block' onClick={start} disabled={!recommendation}><Icon name='play' size={17} fill /> {copy.start}</button>
-    <button className='btn btn-ghost btn-block' style={{ marginTop: 8 }} onClick={onClose}>{copy.later}</button>
+  return <Sheet open={Boolean(minutes)} onClose={onClose} label={copy.practiceChoice} className='quick-practice-sheet'>
+    <div className='quick-practice-sheet__content'>
+      <h3 className='h2'>{copy.practiceChoice}</h3>
+      <p className='tc' style={{ marginTop: 4 }}>{minutes} {copy.minute} · {copy.recommendationHint}</p>
+      <div className='quick-guidance' role='radiogroup' aria-label={lang === 'en' ? 'Choose guidance type' : 'Chọn hình thức hướng dẫn'}>{['guided', 'silent'].map((type) => <GuidanceTypeCard key={type} type={type} selected={guidanceType === type} onSelect={selectGuidance} lang={lang} />)}</div>
+      <div className={`ambient-setup ${guidanceType === 'silent' ? '' : 'ambient-setup--placeholder'}`.trim()} aria-hidden={guidanceType !== 'silent'}>
+        <div className='ambient-setup__label'>{copy.backgroundSound}</div>
+        <div className='ambient-options' role={guidanceType === 'silent' ? 'radiogroup' : undefined} aria-label={guidanceType === 'silent' ? copy.backgroundSound : undefined}>{AMBIENT_SOUNDS.map((sound) => <button key={sound.id} tabIndex={guidanceType === 'silent' ? 0 : -1} aria-pressed={backgroundSound === sound.id} onClick={() => setBackgroundSound(sound.id)} aria-label={`${copy.chooseBackground} ${lang === 'en' ? sound.nameEn : sound.nameVi}`}><Icon name={sound.icon || (sound.id === 'none' ? 'close' : sound.id === 'white_noise' ? 'sliders' : sound.id)} size={17} /><span>{lang === 'en' ? sound.nameEn : sound.nameVi}</span></button>)}</div>
+        <div className='ambient-volume-slot' aria-hidden={backgroundSound === 'none'}>
+          <label className='ambient-volume' hidden={backgroundSound === 'none'}><span><strong>{copy.backgroundVolume}</strong><span>{Math.round(backgroundVolume * 100)}%</span></span><input tabIndex={guidanceType === 'silent' ? 0 : -1} type='range' min='0' max='100' step='1' value={Math.round(backgroundVolume * 100)} onChange={(event) => setBackgroundVolume(Number(event.target.value) / 100)} aria-label={`${copy.backgroundVolume} ${Math.round(backgroundVolume * 100)} ${copy.percent}`} /></label>
+        </div>
+      </div>
+      <RecommendedMeditationCard session={recommendation} lang={lang} />
+    </div>
+    <div className='quick-practice-sheet__actions'>
+      <button className='btn btn-primary btn-block' onClick={start} disabled={!recommendation}><Icon name='play' size={17} fill /> {copy.start}</button>
+      <button className='btn btn-ghost btn-block' onClick={onClose}>{copy.later}</button>
+    </div>
   </Sheet>
 }
