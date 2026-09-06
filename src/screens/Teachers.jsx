@@ -4,23 +4,34 @@ import { useEffect, useState } from 'react'
 import { AppBar } from '../components/Chrome.jsx'
 import Icon from '../components/Icon.jsx'
 import Img from '../components/Img.jsx'
-import { LINEAGES, teacherById, TEACHERS } from '../data/content.js'
+import { LINEAGES } from '../data/content.js'
 import { uiText } from '../lib/format.js'
 import { useApp } from '../lib/store.jsx'
 import { GUIDANCE_LABELS } from '../data/meditation.js'
 import { meditationService } from '../services/meditationService.js'
 import { audioService } from '../services/audioService.js'
 import { useAudio } from '../lib/audio.jsx'
+import { teachersService } from '../services/teachers/teachersService.js'
 
 export function Teachers() {
   const { go, lang } = useApp()
   const copy = uiText(lang)
   const teacherCopy = copy.teachersPage
   const [lin, setLin] = useState('all')
+  const [teachers, setTeachers] = useState(null)
+  const [error, setError] = useState('')
+  const loadTeachers = (force = false) => {
+    setError('')
+    setTeachers(null)
+    teachersService.getTeachers({ force })
+      .then(setTeachers)
+      .catch(() => setError(lang === 'vi' ? 'Không thể tải danh sách các vị thầy.' : 'Unable to load teachers.'))
+  }
+  useEffect(() => { loadTeachers() }, [])
   const list =
     lin === 'all'
-      ? TEACHERS
-      : TEACHERS.filter((t) =>
+      ? (teachers || [])
+      : (teachers || []).filter((t) =>
           lin === 'other' ? !['chah', 'forest'].includes(t.lineage) : t.lineage === lin,
         )
 
@@ -39,13 +50,18 @@ export function Teachers() {
             </button>
           ))}
         </div>
-        {list.length === 0 ? (
+        {!teachers && !error ? (
+          <div className='empty' role='status'>{lang === 'vi' ? 'Đang tải các vị thầy…' : 'Loading teachers…'}</div>
+        ) : error ? (
+          <div className='empty' role='alert'>{error}<br /><button className='btn btn-ghost' onClick={() => loadTeachers(true)}>{lang === 'vi' ? 'Thử lại' : 'Try again'}</button></div>
+        ) : list.length === 0 ? (
           <div className='empty'>{teacherCopy.emptyLineage}</div>
         ) : (
           <div className='card' style={{ marginTop: 12 }}>
             {list.map((t) => {
-              const talks = audioService.getByTeacher(t.id).length
-              const meditations = meditationService.getSessionsByTeacher(t.id).length
+              const localId = t.legacyId || t.id
+              const talks = audioService.getByTeacher(localId).length
+              const meditations = meditationService.getSessionsByTeacher(localId).length
               return <button key={t.id} className='row' onClick={() => go('teacher', t.id)}>
                 <Img src={t.img} label={t.name} round style={{ width: 46, height: 46 }} />
                 <span className='grow'>
@@ -69,9 +85,12 @@ export function Teachers() {
 export function TeacherDetail({ id }) {
   const { go, lang } = useApp()
   const { play } = useAudio()
-  const t = teacherById(id)
-  const meditations = meditationService.getSessionsByTeacher(id)
-  const audioItems = audioService.getByTeacher(id)
+  const [t, setTeacher] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+  const localId = t?.legacyId || t?.id
+  const meditations = localId ? meditationService.getSessionsByTeacher(localId) : []
+  const audioItems = localId ? audioService.getByTeacher(localId) : []
   const [section, setSection] = useState('about')
   const copy = uiText(lang).teachersPage
   const labels = lang === 'vi'
@@ -79,8 +98,20 @@ export function TeacherDetail({ id }) {
     : { about: copy.about, meditate: copy.meditate, listen: copy.listen }
   const visibleSections = ['about', ...(meditations.length ? ['meditate'] : []), ...(audioItems.length ? ['listen'] : [])]
   useEffect(() => {
+    let active = true
+    setLoading(true)
+    setError('')
+    teachersService.getTeacher(id)
+      .then((teacher) => { if (active) setTeacher(teacher) })
+      .catch(() => { if (active) setError(lang === 'vi' ? 'Không thể tải thông tin vị thầy này.' : 'Unable to load this teacher.') })
+      .finally(() => { if (active) setLoading(false) })
+    return () => { active = false }
+  }, [id])
+  useEffect(() => {
     if (!visibleSections.includes(section)) setSection('about')
   }, [id, section, meditations.length, audioItems.length])
+  if (loading) return <><AppBar title={lang === 'vi' ? 'Các vị thầy' : 'Teachers'} /><div className='empty' role='status'>{lang === 'vi' ? 'Đang tải thông tin…' : 'Loading teacher…'}</div></>
+  if (error) return <><AppBar title={lang === 'vi' ? 'Các vị thầy' : 'Teachers'} /><div className='empty' role='alert'>{error}</div></>
   if (!t) return <><AppBar title={lang === 'vi' ? 'Các vị thầy' : 'Teachers'} /><div className='empty' role='status'>{lang === 'vi' ? 'Không tìm thấy thông tin vị thầy này.' : 'This teacher could not be found.'}</div></>
   const startMeditation = (session) => go('session', JSON.stringify({ sessionId: session.id, minutes: session.durationSeconds / 60, restart: true, bells: { beginning: true, interval: false, ending: true } }))
   return (

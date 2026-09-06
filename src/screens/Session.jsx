@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Icon from '../components/Icon.jsx'
 import Img from '../components/Img.jsx'
 import Scrubber from '../components/Scrubber.jsx'
@@ -39,7 +39,9 @@ export default function Session({ param }) {
   const activated = useRef(false)
   const isGuided = session.guidanceType === 'guided'
   const isActiveSession = guidedAudio.sessionId === session.id
-  const shownLeft = isActiveSession ? Math.max(0, total - guidedAudio.currentTime) : total
+  const [silentDisplayTime, setSilentDisplayTime] = useState(0)
+  const shownTime = isGuided ? guidedAudio.currentTime : silentDisplayTime
+  const shownLeft = isActiveSession ? Math.max(0, total - shownTime) : total
   const elapsed = total - shownLeft
   const effectiveRunning = isActiveSession && guidedAudio.playing
   const completed = shownLeft <= 0
@@ -60,6 +62,24 @@ export default function Session({ param }) {
     if (cfg.restart || guidedAudio.sessionId !== session.id) guidedAudio.startSession(session, { restart: Boolean(cfg.restart) })
   }, [session, cfg, guidedAudio.sessionId, guidedAudio.startSession])
 
+  useEffect(() => {
+    if (isGuided || !isActiveSession) {
+      setSilentDisplayTime(0)
+      return
+    }
+
+    setSilentDisplayTime(guidedAudio.currentTime)
+    if (!guidedAudio.playing) return
+
+    const clockStartedAt = performance.now() - guidedAudio.currentTime * 1000
+    const timer = window.setInterval(() => {
+      const elapsedSeconds = (performance.now() - clockStartedAt) / 1000
+      setSilentDisplayTime(Math.min(total, elapsedSeconds))
+    }, 200)
+
+    return () => window.clearInterval(timer)
+  }, [isGuided, isActiveSession, guidedAudio.playing, total])
+
   const close = () => back()
   const stop = () => { guidedAudio.stopSession(); back() }
   const seekGuidedTo = (seconds) => {
@@ -79,7 +99,7 @@ export default function Session({ param }) {
       <div className='inner'>
         <div className='player-top'><button className='iconbtn' onClick={close} aria-label={copy.closeSession}><Icon name='down' /></button><span className='grow' /><span className='player-mode'>{guidanceLabels[session.guidanceType]}</span></div>
         <div className='meditation-player__identity'>
-          <div className='tm'>{method.name}</div>
+          <div className='tm'>{method?.name || method?.nameVi || ''}</div>
           <h2 className='h1'>{session.titleVi}</h2>
           {isGuided && (teacher || session.teacherName) && <div className='guided-teacher'>{teacher?.img && <Img src={teacher.img} label={teacher.name} round style={{ width: 30, height: 30 }} />}<span className='tc'>{teacher?.name || session.teacherName}</span></div>}
         </div>
@@ -88,7 +108,7 @@ export default function Session({ param }) {
           <div className='readout' role='timer'><div className='t'>{mm}:{ss}</div></div>
         </div>
         <div className='player-guidance'>
-          {completed ? <><h2 className='h2'>{completionCopy.title}</h2><p>{completionCopy.body}</p><span className='tm'>{completionCopy.wish}</span></> : isGuided ? <><p>{lang === 'vi' ? method.cueVi : method.name}</p><span className='tm' role='status'>{guidedAudio.error || (guidedAudio.playing ? copy.guidedPlaying : copy.guidedPaused)}</span></> : <p>{copy.noGuidance}</p>}
+          {completed ? <><h2 className='h2'>{completionCopy.title}</h2><p>{completionCopy.body}</p><span className='tm'>{completionCopy.wish}</span></> : isGuided ? <>{(method?.cueVi || method?.nameVi || method?.name) && <p>{lang === 'vi' ? (method?.cueVi || method?.nameVi || method?.name) : (method?.nameEn || method?.name || method?.nameVi)}</p>}<span className='tm' role='status'>{guidedAudio.error || (guidedAudio.playing ? copy.guidedPlaying : copy.guidedPaused)}</span></> : <p>{copy.noGuidance}</p>}
         </div>
         {isGuided && <div className='guided-seek'><Scrubber pos={elapsed} total={total} onSeek={seekGuidedTo} label={lang === 'en' ? 'Meditation position' : 'Vị trí bài thiền'} /></div>}
         <div className='grow' />

@@ -24,17 +24,31 @@ export function RecommendedMeditationCard({ session, lang = 'vi' }) {
   return <div className='recommendation-card'><span className='tm'>{copy.recommendation}</span><strong>{session.titleVi}</strong><span className='tc'>{method?.name} · {Math.round(session.durationSeconds / 60)} {copy.minute}</span></div>
 }
 
-export function QuickPracticeSheet({ minutes, onClose, onStart, lang = 'vi', preferredMethod }) {
+export function QuickPracticeSheet({ minutes, onClose, onStart, lang = 'vi', preferredMethod, apiSessions = null }) {
   const copy = uiText(lang).meditate
   const [guidanceType, setGuidanceType] = useState(() => meditationService.getPreferredGuidance())
   const previousPractice = meditationService.getRecentPractice()
   const previousSession = previousPractice ? meditationService.getSession(previousPractice.meditationSessionId) : null
-  const recommendation = useMemo(() => meditationService.getRecommendedMeditation({
-    duration: minutes || 10,
-    guidanceType,
-    preferredMethod: preferredMethod || previousSession?.methodId || 'anapanasati',
-    previousPractice: previousSession,
-  }), [minutes, guidanceType, previousSession?.id, preferredMethod])
+  const recommendation = useMemo(() => {
+    if (guidanceType === 'guided') {
+      const target = (minutes || 10) * 60
+      const realSession = (apiSessions || [])
+        .filter((session) => session.guidanceType === 'guided')
+        .map((session) => ({ session, difference: Math.abs(session.durationSeconds - target) }))
+        .filter(({ difference }) => difference <= 60)
+        .sort((left, right) => left.difference - right.difference)[0]?.session
+      if (realSession) return realSession
+      // When API sessions were explicitly supplied, do not replace missing
+      // production content with an unrelated local guided recording.
+      if (Array.isArray(apiSessions)) return null
+    }
+    return meditationService.getRecommendedMeditation({
+      duration: minutes || 10,
+      guidanceType,
+      preferredMethod: preferredMethod || previousSession?.methodId || 'anapanasati',
+      previousPractice: previousSession,
+    })
+  }, [minutes, guidanceType, previousSession?.id, preferredMethod, apiSessions])
   const selectGuidance = (type) => { setGuidanceType(type); meditationService.savePreferredGuidance(type) }
 
   return <Sheet open={Boolean(minutes)} onClose={onClose} label={copy.practiceChoice}>

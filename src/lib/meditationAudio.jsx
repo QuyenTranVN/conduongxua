@@ -24,12 +24,13 @@ export function MeditationAudioProvider({ children }) {
   const [duration, setDuration] = useState(0)
   const [error, setError] = useState('')
   const session = meditationService.getSession(sessionId)
+  const usesAudioClock = session?.guidanceType === 'guided' && hasPlayableAudio(session)
 
-  const save = useCallback((completed = false, time = currentTime, total = duration) => {
+  const save = useCallback((completed, time, total) => {
     if (!sessionId || !total) return
     const progress = { sessionId, meditationSessionId: sessionId, startedAt: startedAt.current || new Date().toISOString(), progressSeconds: completed ? total : time, durationSeconds: total, durationCompleted: completed ? total : time, completed }
     completed ? meditationService.completeSession(progress) : meditationService.saveProgress(progress)
-  }, [sessionId, currentTime, duration])
+  }, [sessionId])
 
   const startSession = useCallback((nextSession, { restart = false } = {}) => {
     if (!nextSession) return
@@ -58,7 +59,7 @@ export function MeditationAudioProvider({ children }) {
       setDuration(nextSession.durationSeconds)
       lastSaved.current = -1
       lastTickAt.current = Date.now()
-      if (restart && nextSession.id === sessionId && audioRef.current && hasPlayableAudio(nextSession)) {
+      if (restart && nextSession.id === sessionId && audioRef.current && nextSession.guidanceType === 'guided' && hasPlayableAudio(nextSession)) {
         audioRef.current.currentTime = 0
         audioRef.current.play().catch(() => { setPlaying(false); setError(errors.meditationPlay) })
       }
@@ -93,21 +94,21 @@ export function MeditationAudioProvider({ children }) {
         window.clearTimeout(endBellTimer.current)
         endBellTimer.current = null
       }
-      if (audioRef.current && hasPlayableAudio(session)) audioRef.current.currentTime = 0
+      if (audioRef.current && usesAudioClock) audioRef.current.currentTime = 0
       startedAt.current = new Date().toISOString()
       lastSaved.current = -1
       lastTickAt.current = Date.now()
       setCurrentTime(0)
       setPlaying(true)
-      if (!hasPlayableAudio(session)) playBellSequence(3, .55)
+      if (!usesAudioClock) playBellSequence(3, .55)
       return
     }
-    if (!playing && session && !hasPlayableAudio(session)) playBell(.42)
+    if (!playing && session && !usesAudioClock) playBell(.42)
     setPlaying((value) => {
       if (!value) lastTickAt.current = Date.now()
       return !value
     })
-  }, [sessionId, session, playing, currentTime, duration])
+  }, [sessionId, session, playing, currentTime, duration, usesAudioClock])
   const seekTo = useCallback((seconds) => {
     const el = audioRef.current
     if (!el) return
@@ -119,7 +120,7 @@ export function MeditationAudioProvider({ children }) {
 
   useEffect(() => {
     const el = audioRef.current
-    if (!el || !hasPlayableAudio(session)) return
+    if (!el || !usesAudioClock) return
     const url = getAudioUrl(session)
     if (!url) { setPlaying(false); setError(errors.meditationUnavailable); return }
     if (el.dataset.id !== session.id) {
@@ -129,10 +130,10 @@ export function MeditationAudioProvider({ children }) {
     }
     if (playing) el.play().catch(() => { setPlaying(false); setError(errors.meditationPlay) })
     else el.pause()
-  }, [session, playing, errors])
+  }, [session, playing, errors, usesAudioClock])
 
   useEffect(() => {
-    if (!playing || !session || hasPlayableAudio(session)) return
+    if (!playing || !session || usesAudioClock) return
     lastTickAt.current = Date.now()
     const timer = window.setInterval(() => {
       setCurrentTime((value) => {
@@ -153,16 +154,16 @@ export function MeditationAudioProvider({ children }) {
         }
         return next
       })
-    }, 1000)
+    }, 250)
     return () => window.clearInterval(timer)
-  }, [playing, session, duration, save])
+  }, [playing, session, duration, save, usesAudioClock])
 
   useEffect(() => {
     const preserveProgress = () => {
       if (!sessionId) return
       const el = audioRef.current
-      const time = hasPlayableAudio(session) && el ? el.currentTime : currentTime
-      const total = hasPlayableAudio(session) && el ? (el.duration || duration) : duration
+      const time = usesAudioClock && el ? el.currentTime : currentTime
+      const total = usesAudioClock && el ? (el.duration || duration) : duration
       save(false, time, total)
       if (document.visibilityState === 'visible') lastTickAt.current = Date.now()
     }
@@ -172,7 +173,7 @@ export function MeditationAudioProvider({ children }) {
       document.removeEventListener('visibilitychange', preserveProgress)
       window.removeEventListener('pagehide', preserveProgress)
     }
-  }, [sessionId, session, currentTime, duration, save])
+  }, [sessionId, currentTime, duration, save, usesAudioClock])
 
   useEffect(() => () => {
     if (endBellTimer.current) window.clearTimeout(endBellTimer.current)

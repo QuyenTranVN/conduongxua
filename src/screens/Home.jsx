@@ -1,14 +1,15 @@
 /** @format */
+import { useEffect, useState } from 'react'
 import { AppBar } from '../components/Chrome.jsx'
 import Footer from '../components/Footer.jsx'
 import Icon from '../components/Icon.jsx'
 import Img from '../components/Img.jsx'
-import { TEACHERS } from '../data/content.js'
 import { greeting, uiText } from '../lib/format.js'
 import { useApp } from '../lib/store.jsx'
 import { useAudio } from '../lib/audio.jsx'
 import { audioService } from '../services/audioService.js'
 import { meditationService } from '../services/meditationService.js'
+import { teachersService } from '../services/teachers/teachersService.js'
 
 function MeditationBanner({ lang, onStart }) {
   const copy = lang === 'vi'
@@ -24,6 +25,15 @@ export default function Home() {
   const { go, switchTab, lang } = useApp()
   const { play, continueItems } = useAudio()
   const copy = uiText(lang)
+  const [teachers, setTeachers] = useState(null)
+  const [teachersError, setTeachersError] = useState(false)
+  useEffect(() => {
+    let active = true
+    teachersService.getTeachers()
+      .then((items) => { if (active) setTeachers(items) })
+      .catch(() => { if (active) setTeachersError(true) })
+    return () => { active = false }
+  }, [])
   const hour = new Date().getHours()
   const continuePractice = meditationService.getContinuePractice()
   const practiceSessionId = continuePractice?.sessionId || continuePractice?.meditationSessionId || continuePractice?.id
@@ -67,7 +77,10 @@ export default function Home() {
       </section>}
 
       <section className='home-teachers'><div className='sec'>{copy.home.teachers}<button className='more' onClick={() => switchTab('teachers')}>{copy.home.seeAll} →</button></div>
-        <div className='home-teachers__list'>{TEACHERS.slice(0, 3).map((teacher) => <button key={teacher.id} onClick={() => go('teacher', teacher.id)}><Img src={teacher.img} label={teacher.name} round /><span>{teacher.name}</span></button>)}</div>
+        {!teachers && !teachersError ? <div className='empty' role='status'>{lang === 'vi' ? 'Đang tải…' : 'Loading…'}</div>
+          : teachersError ? <div className='empty' role='alert'>{lang === 'vi' ? 'Không thể tải các vị thầy.' : 'Unable to load teachers.'}</div>
+          : teachers?.length ? <div className='home-teachers__list'>{teachers.slice(0, 3).map((teacher) => <button key={teacher.id} onClick={() => go('teacher', teacher.slug)}><Img src={teacher.img} label={teacher.name} round /><span>{teacher.name}</span></button>)}</div>
+          : <div className='empty'>{lang === 'vi' ? 'Chưa có vị thầy nào.' : 'No teachers are available.'}</div>}
       </section>
       <Footer />
     </main></div>

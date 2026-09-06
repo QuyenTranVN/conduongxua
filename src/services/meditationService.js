@@ -1,9 +1,12 @@
 import { MEDITATION_METHODS, MEDITATION_SESSIONS } from '../data/meditation.js'
 import { hasPlayableAudio } from './audioStorage.js'
 import { readLocalJson, writeLocalJson, readLocalEnum, writeLocalValue } from './localStorageService.js'
+import { meditationCatalogService } from './meditation/meditationCatalogService.js'
 
 const HISTORY_KEY = 'con-duong-xua:practice-history'
 const GUIDANCE_KEY = 'con-duong-xua:preferred-guidance'
+const apiMethods = new Map()
+const apiSessions = new Map()
 const isAvailableSession = (session) => session.guidanceType !== 'guided' || hasPlayableAudio(session)
 const customSilentSession = (id) => {
   const match = /^custom-silent:([a-z0-9-]+):(\d+)$/.exec(String(id || ''))
@@ -12,7 +15,20 @@ const customSilentSession = (id) => {
   if (!MEDITATION_METHODS.some((method) => method.id === match[1]) || durationSeconds < 60 || durationSeconds > 7200) return null
   return { id, titleVi: 'Thiền im lặng', methodId: match[1], durationSeconds, guidanceType: 'silent', language: 'vi', level: 'custom' }
 }
-const findSession = (id) => MEDITATION_SESSIONS.find((session) => session.id === id) || customSilentSession(id)
+const findSession = (id) => apiSessions.get(id) || MEDITATION_SESSIONS.find((session) => session.id === id) || customSilentSession(id)
+const rememberMethod = (method) => {
+  apiMethods.set(method.id, method)
+  apiMethods.set(method.slug, method)
+  if (method.apiId) apiMethods.set(method.apiId, method)
+  return method
+}
+const rememberSession = (session) => {
+  const method = apiMethods.get(session.apiMethodId) || apiMethods.get(session.methodId)
+  const normalized = method ? { ...session, methodId: method.slug } : session
+  apiSessions.set(normalized.id, normalized)
+  apiSessions.set(normalized.slug, normalized)
+  return normalized
+}
 const readHistory = () => {
   const value = readLocalJson(HISTORY_KEY, [])
   return Array.isArray(value) ? value.filter((item) => item && typeof item === 'object') : []
@@ -31,7 +47,7 @@ const normalizeProgress = (record) => {
 
 export const meditationService = {
   getMethods: () => MEDITATION_METHODS,
-  getMethod: (id) => MEDITATION_METHODS.find((method) => method.id === id),
+  getMethod: (id) => apiMethods.get(id) || MEDITATION_METHODS.find((method) => method.id === id),
   getSessions: () => MEDITATION_SESSIONS.filter(isAvailableSession),
   getSession: (id) => findSession(id),
   getSessionsByMethod: (methodId) => MEDITATION_SESSIONS.filter((session) => session.methodId === methodId && isAvailableSession(session)),
@@ -42,6 +58,20 @@ export const meditationService = {
   },
   getMeditationsByGuidanceType(guidanceType) {
     return MEDITATION_SESSIONS.filter((session) => session.guidanceType === guidanceType && isAvailableSession(session))
+  },
+  async loadMethods(options) {
+    const methods = await meditationCatalogService.getMethods(options)
+    return methods.map(rememberMethod)
+  },
+  async loadMethod(slug, options) {
+    return rememberMethod(await meditationCatalogService.getMethod(slug, options))
+  },
+  async loadSessions({ method, ...options } = {}) {
+    const sessions = await meditationCatalogService.getSessions({ method, ...options })
+    return sessions.map(rememberSession)
+  },
+  async loadSession(slug, options) {
+    return rememberSession(await meditationCatalogService.getSession(slug, options))
   },
   getRecommendedMeditation({ duration, guidanceType, preferredMethod, previousPractice }) {
     const target = duration * 60
