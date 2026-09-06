@@ -3,7 +3,7 @@ import Icon from '../components/Icon.jsx'
 import Img from '../components/Img.jsx'
 import Scrubber from '../components/Scrubber.jsx'
 import { useApp } from '../lib/store.jsx'
-import { playBell, playBellSequence } from '../lib/bell.js'
+import { playBell, playBellSequence, stopBellSequence } from '../lib/bell.js'
 import { teacherById } from '../data/content.js'
 import { GUIDANCE_LABELS, GUIDANCE_LABELS_EN, MEDITATION_AUDIO_CREDIT } from '../data/meditation.js'
 import { meditationService } from '../services/meditationService.js'
@@ -54,13 +54,14 @@ export default function Session({ param }) {
     if (started.current) return
     started.current = true
     if (!isGuided && cfg.bells?.beginning) playBellSequence(3, 0.55)
+    return () => { if (!isGuided) stopBellSequence() }
   }, [cfg, isGuided])
 
   useEffect(() => {
     if (activated.current) return
     activated.current = true
-    if (cfg.restart || guidedAudio.sessionId !== session.id) guidedAudio.startSession(session, { restart: Boolean(cfg.restart) })
-  }, [session, cfg, guidedAudio.sessionId, guidedAudio.startSession])
+    if (cfg.restart || guidedAudio.sessionId !== session.id) guidedAudio.startSession(session, { restart: Boolean(cfg.restart), ambience: cfg.ambience })
+  }, [session, cfg, isGuided, guidedAudio.sessionId, guidedAudio.startSession])
 
   useEffect(() => {
     if (isGuided || !isActiveSession) {
@@ -80,7 +81,7 @@ export default function Session({ param }) {
     return () => window.clearInterval(timer)
   }, [isGuided, isActiveSession, guidedAudio.playing, total])
 
-  const close = () => back()
+  const close = () => { if (!isGuided) { stopBellSequence(); guidedAudio.stopSession() } back() }
   const stop = () => { guidedAudio.stopSession(); back() }
   const seekGuidedTo = (seconds) => {
     if (!isGuided) return

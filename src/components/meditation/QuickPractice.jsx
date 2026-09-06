@@ -1,9 +1,11 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import Icon from '../Icon.jsx'
 import Sheet from '../Sheet.jsx'
 import { GUIDANCE_DESCRIPTIONS, GUIDANCE_DESCRIPTIONS_EN, GUIDANCE_LABELS, GUIDANCE_LABELS_EN } from '../../data/meditation.js'
 import { meditationService } from '../../services/meditationService.js'
 import { uiText } from '../../lib/format.js'
+import { AMBIENT_SOUNDS, ambientAudio, ambientSoundPreferences } from '../../services/ambientSoundService.js'
+import { playBellSequence } from '../../lib/bell.js'
 
 export function QuickPracticeDurationSelector({ durations, onSelect, lang = 'vi' }) {
   const unit = lang === 'en' ? 'min' : 'phút'
@@ -27,6 +29,8 @@ export function RecommendedMeditationCard({ session, lang = 'vi' }) {
 export function QuickPracticeSheet({ minutes, onClose, onStart, lang = 'vi', preferredMethod, apiSessions = null }) {
   const copy = uiText(lang).meditate
   const [guidanceType, setGuidanceType] = useState(() => meditationService.getPreferredGuidance())
+  const [backgroundSound, setBackgroundSound] = useState(() => ambientSoundPreferences.get().lastBackgroundSound)
+  const [backgroundVolume, setBackgroundVolume] = useState(() => ambientSoundPreferences.get().lastBackgroundVolume)
   const previousPractice = meditationService.getRecentPractice()
   const previousSession = previousPractice ? meditationService.getSession(previousPractice.meditationSessionId) : null
   const recommendation = useMemo(() => {
@@ -50,13 +54,32 @@ export function QuickPracticeSheet({ minutes, onClose, onStart, lang = 'vi', pre
     })
   }, [minutes, guidanceType, previousSession?.id, preferredMethod, apiSessions])
   const selectGuidance = (type) => { setGuidanceType(type); meditationService.savePreferredGuidance(type) }
+  useEffect(() => {
+    if (!minutes) return
+    const saved = ambientSoundPreferences.get()
+    setBackgroundSound(saved.lastBackgroundSound)
+    setBackgroundVolume(saved.lastBackgroundVolume)
+  }, [minutes])
+  const start = () => {
+    if (guidanceType === 'silent') ambientSoundPreferences.save({ lastSilentDuration: minutes * 60, lastBackgroundSound: backgroundSound, lastBackgroundVolume: backgroundVolume })
+    if (guidanceType === 'silent') {
+      if (backgroundSound !== 'none') ambientAudio.unlock()
+      playBellSequence(3, .55)
+    }
+    onStart(recommendation, guidanceType === 'silent' ? { backgroundSound, backgroundVolume, startDelaySeconds: 8, beginningBellHandled: true } : undefined)
+  }
 
   return <Sheet open={Boolean(minutes)} onClose={onClose} label={copy.practiceChoice}>
     <h3 className='h2'>{copy.practiceChoice}</h3>
     <p className='tc' style={{ marginTop: 4 }}>{minutes} {copy.minute} · {copy.recommendationHint}</p>
     <div className='quick-guidance' role='radiogroup' aria-label={lang === 'en' ? 'Choose guidance type' : 'Chọn hình thức hướng dẫn'}>{['guided', 'silent'].map((type) => <GuidanceTypeCard key={type} type={type} selected={guidanceType === type} onSelect={selectGuidance} lang={lang} />)}</div>
+    {guidanceType === 'silent' && <div className='ambient-setup'>
+      <div className='ambient-setup__label'>{copy.backgroundSound}</div>
+      <div className='ambient-options' role='radiogroup' aria-label={copy.backgroundSound}>{AMBIENT_SOUNDS.map((sound) => <button key={sound.id} aria-pressed={backgroundSound === sound.id} onClick={() => setBackgroundSound(sound.id)} aria-label={`${copy.chooseBackground} ${lang === 'en' ? sound.nameEn : sound.nameVi}`}><Icon name={sound.icon || (sound.id === 'none' ? 'close' : sound.id === 'white_noise' ? 'sliders' : sound.id)} size={17} /><span>{lang === 'en' ? sound.nameEn : sound.nameVi}</span></button>)}</div>
+      {backgroundSound !== 'none' && <label className='ambient-volume'><span><strong>{copy.backgroundVolume}</strong><span>{Math.round(backgroundVolume * 100)}%</span></span><input type='range' min='0' max='100' step='1' value={Math.round(backgroundVolume * 100)} onChange={(event) => setBackgroundVolume(Number(event.target.value) / 100)} aria-label={`${copy.backgroundVolume} ${Math.round(backgroundVolume * 100)} ${copy.percent}`} /></label>}
+    </div>}
     <RecommendedMeditationCard session={recommendation} lang={lang} />
-    <button className='btn btn-primary btn-block' onClick={() => onStart(recommendation)} disabled={!recommendation}><Icon name='play' size={17} fill /> {copy.start}</button>
+    <button className='btn btn-primary btn-block' onClick={start} disabled={!recommendation}><Icon name='play' size={17} fill /> {copy.start}</button>
     <button className='btn btn-ghost btn-block' style={{ marginTop: 8 }} onClick={onClose}>{copy.later}</button>
   </Sheet>
 }

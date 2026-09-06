@@ -1,10 +1,11 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { meditationService } from '../services/meditationService.js'
-import { playBell, playBellSequence, stopBellSequence } from './bell.js'
+import { playBellSequence, stopBellSequence } from './bell.js'
 import { useAudio } from './audio.jsx'
 import { getAudioUrl, hasPlayableAudio } from '../services/audioStorage.js'
 import { useApp } from './store.jsx'
 import { uiText } from './format.js'
+import { ambientAudio } from '../services/ambientSoundService.js'
 
 const MeditationAudioContext = createContext(null)
 
@@ -18,6 +19,8 @@ export function MeditationAudioProvider({ children }) {
   const startedAt = useRef(null)
   const lastSaved = useRef(-1)
   const lastTickAt = useRef(Date.now())
+  const ambienceRef = useRef({ backgroundSound: 'none', backgroundVolume: .25 })
+  const ambienceFadeStarted = useRef(false)
   const [sessionId, setSessionId] = useState(null)
   const [playing, setPlaying] = useState(false)
   const [currentTime, setCurrentTime] = useState(0)
@@ -32,7 +35,7 @@ export function MeditationAudioProvider({ children }) {
     completed ? meditationService.completeSession(progress) : meditationService.saveProgress(progress)
   }, [sessionId])
 
-  const startSession = useCallback((nextSession, { restart = false } = {}) => {
+  const startSession = useCallback((nextSession, { restart = false, ambience } = {}) => {
     if (!nextSession) return
     if (nextSession.guidanceType === 'guided' && !hasPlayableAudio(nextSession)) {
       setPlaying(false)
@@ -44,6 +47,11 @@ export function MeditationAudioProvider({ children }) {
       endBellTimer.current = null
     }
     listeningAudio.pause()
+    ambientAudio.stop(0)
+    ambienceRef.current = nextSession.guidanceType === 'silent'
+      ? { backgroundSound: ambience?.backgroundSound || 'none', backgroundVolume: ambience?.backgroundVolume ?? .25 }
+      : { backgroundSound: 'none', backgroundVolume: .25 }
+    ambienceFadeStarted.current = false
     suppressPauseSave.current = restart && nextSession.id === sessionId
     audioRef.current?.pause()
     setError('')
@@ -65,15 +73,20 @@ export function MeditationAudioProvider({ children }) {
       }
     }
     setPlaying(true)
+    if (nextSession.guidanceType === 'silent' && ambienceRef.current.backgroundSound !== 'none') {
+      ambientAudio.start(ambienceRef.current.backgroundSound, ambienceRef.current.backgroundVolume, 3, ambience?.startDelaySeconds || 0)
+        .catch(() => { /* the timer remains usable without ambience */ })
+    }
     return true
   }, [sessionId, listeningAudio, errors])
   const stopSession = useCallback(() => {
+    stopBellSequence()
+    ambientAudio.stop(0)
     if (!sessionId) return
     if (endBellTimer.current) {
       window.clearTimeout(endBellTimer.current)
       endBellTimer.current = null
     }
-    stopBellSequence()
     suppressPauseSave.current = true
     audioRef.current?.pause()
     meditationService.discardPractice(sessionId)
@@ -85,6 +98,7 @@ export function MeditationAudioProvider({ children }) {
     startedAt.current = null
     lastSaved.current = -1
     lastTickAt.current = Date.now()
+    ambienceFadeStarted.current = false
   }, [sessionId])
   const toggle = useCallback(() => {
     if (!sessionId) return
@@ -98,12 +112,18 @@ export function MeditationAudioProvider({ children }) {
       startedAt.current = new Date().toISOString()
       lastSaved.current = -1
       lastTickAt.current = Date.now()
+      ambienceFadeStarted.current = false
       setCurrentTime(0)
       setPlaying(true)
-      if (!usesAudioClock) playBellSequence(3, .55)
+      if (!usesAudioClock) {
+        playBellSequence(3, .55)
+        if (ambienceRef.current.backgroundSound !== 'none') ambientAudio.start(ambienceRef.current.backgroundSound, ambienceRef.current.backgroundVolume, 3)
+      }
       return
     }
-    if (!playing && session && !usesAudioClock) playBell(.42)
+    if (!playing && session && !usesAudioClock) {
+      ambientAudio.resume()
+    } else if (playing && !usesAudioClock) ambientAudio.pause()
     setPlaying((value) => {
       if (!value) lastTickAt.current = Date.now()
       return !value
@@ -146,11 +166,17 @@ export function MeditationAudioProvider({ children }) {
           lastSaved.current = wholeSecond
           save(false, next, duration || session.durationSeconds)
         }
+        const remaining = (duration || session.durationSeconds) - next
+        if (remaining <= 2.5 && !ambienceFadeStarted.current) {
+          ambienceFadeStarted.current = true
+          ambientAudio.stop(2.4)
+        }
         if (next >= (duration || session.durationSeconds)) {
           window.clearInterval(timer)
           setPlaying(false)
           save(true, next, duration || session.durationSeconds)
-          playBellSequence(3, .6)
+          if (!ambienceFadeStarted.current) ambientAudio.stop(2)
+          window.setTimeout(() => playBellSequence(3, .6), ambienceFadeStarted.current ? 150 : 2100)
         }
         return next
       })
@@ -165,7 +191,11 @@ export function MeditationAudioProvider({ children }) {
       const time = usesAudioClock && el ? el.currentTime : currentTime
       const total = usesAudioClock && el ? (el.duration || duration) : duration
       save(false, time, total)
-      if (document.visibilityState === 'visible') lastTickAt.current = Date.now()
+      if (!usesAudioClock && document.visibilityState === 'hidden') ambientAudio.pause()
+      if (document.visibilityState === 'visible') {
+        lastTickAt.current = Date.now()
+        if (!usesAudioClock && playing) ambientAudio.resume()
+      }
     }
     document.addEventListener('visibilitychange', preserveProgress)
     window.addEventListener('pagehide', preserveProgress)
@@ -173,10 +203,11 @@ export function MeditationAudioProvider({ children }) {
       document.removeEventListener('visibilitychange', preserveProgress)
       window.removeEventListener('pagehide', preserveProgress)
     }
-  }, [sessionId, currentTime, duration, save, usesAudioClock])
+  }, [sessionId, currentTime, duration, save, usesAudioClock, playing])
 
   useEffect(() => () => {
     if (endBellTimer.current) window.clearTimeout(endBellTimer.current)
+    ambientAudio.stop(0)
   }, [])
 
   const value = useMemo(() => ({ session, sessionId, playing, currentTime, duration, error, startSession, stopSession, toggle, seek, seekTo }), [session, sessionId, playing, currentTime, duration, error, startSession, stopSession, toggle, seek, seekTo])

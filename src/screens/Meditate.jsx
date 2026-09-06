@@ -38,10 +38,10 @@ export default function Meditate() {
     teacher,
     sessions: meditationService.getSessionsByTeacher(teacher.id).filter(hasPlayableAudio),
   })).filter(({ sessions }) => sessions.length > 0).slice(0, 4)
-  const startSession = (session) => {
+  const startSession = (session, ambience) => {
     if (!session) return
     setQuickMinutes(null)
-    go('session', JSON.stringify({ sessionId: session.id, minutes: session.durationSeconds / 60, restart: true, bells: { beginning: true, interval: false, ending: true } }))
+    go('session', JSON.stringify({ sessionId: session.id, minutes: session.durationSeconds / 60, restart: true, bells: { beginning: !ambience?.beginningBellHandled, interval: false, ending: true }, ambience }))
   }
   const openContinuePractice = () => go('session', JSON.stringify({ sessionId: recentSession.id, minutes: recentSession.durationSeconds / 60, bells: { beginning: false, interval: false, ending: true } }))
   const toggleContinuePractice = () => {

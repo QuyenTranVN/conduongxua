@@ -1350,6 +1350,67 @@ a {
 .quick-guidance__option[aria-pressed='true'] > span:last-child {
   color: var(--green-700);
 }
+.ambient-setup {
+  margin: calc(var(--s2) * -1) 0 var(--s4);
+  padding: var(--s4);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--green-050);
+}
+.ambient-setup__label {
+  margin-bottom: var(--s3);
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 700;
+}
+.ambient-options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--s2);
+}
+.ambient-options button {
+  min-height: 44px;
+  min-width: 0;
+  padding: 8px 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--line-2);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  color: var(--text-2);
+  font-size: 12px;
+  text-align: left;
+}
+.ambient-options button:first-child {
+  grid-column: 1 / -1;
+}
+.ambient-options button[aria-pressed='true'] {
+  border-color: var(--green-700);
+  background: var(--green-100);
+  color: var(--green-800);
+  font-weight: 700;
+}
+.ambient-volume {
+  display: block;
+  margin-top: var(--s4);
+}
+.ambient-volume > span {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--s3);
+  color: var(--text-2);
+  font-size: 12px;
+}
+.ambient-volume > span strong {
+  color: var(--text);
+}
+.ambient-volume input {
+  width: 100%;
+  min-height: 44px;
+  margin-top: 2px;
+  accent-color: var(--green-700);
+}
 .recommendation-card {
   display: flex;
   flex-direction: column;

@@ -9,6 +9,7 @@ import { meditationService } from '../src/services/meditationService.js'
 import { audioService } from '../src/services/audioService.js'
 import { isSafeWebUrl, validateContentRecords } from '../src/services/contentValidation.js'
 import { UI_TEXT } from '../src/lib/format.js'
+import { ambientSoundPreferences } from '../src/services/ambientSoundService.js'
 
 function installStorage() {
   const data = new Map()
@@ -53,13 +54,19 @@ test('meditation continuation rejects corruption and completed records', () => {
 })
 
 test('silent meditation recommendation preserves the selected duration', () => {
-  const session = meditationService.getRecommendedMeditation({
-    duration: 8,
-    guidanceType: 'silent',
-    preferredMethod: 'anapanasati',
-  })
-  assert.equal(session.id, 'silent-8')
-  assert.equal(session.durationSeconds, 8 * 60)
+  for (const duration of [8, 15, 30, 45, 60, 120]) {
+    const session = meditationService.getRecommendedMeditation({ duration, guidanceType: 'silent', preferredMethod: 'anapanasati' })
+    assert.equal(session.durationSeconds, duration * 60)
+  }
+})
+
+test('silent ambience preferences default safely and persist valid choices', () => {
+  assert.deepEqual(ambientSoundPreferences.get(), { lastSilentDuration: 1800, lastBackgroundSound: 'none', lastBackgroundVolume: 0.25 })
+  ambientSoundPreferences.save({ lastSilentDuration: 2700, lastBackgroundSound: 'forest', lastBackgroundVolume: 0.32 })
+  assert.deepEqual(ambientSoundPreferences.get(), { lastSilentDuration: 2700, lastBackgroundSound: 'forest', lastBackgroundVolume: 0.32 })
+  ambientSoundPreferences.save({ lastBackgroundSound: 'invalid', lastBackgroundVolume: 4 })
+  assert.equal(ambientSoundPreferences.get().lastBackgroundSound, 'forest')
+  assert.equal(ambientSoundPreferences.get().lastBackgroundVolume, 1)
 })
 
 test('settings persist valid values and app clearing is scoped', () => {

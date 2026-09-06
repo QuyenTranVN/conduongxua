@@ -84,7 +84,7 @@ export const UI_TEXT = {
       resume: 'Tiếp tục',
       endSession: 'Kết thúc buổi thiền',
       guidedPlaying: 'Đang phát hướng dẫn', guidedPaused: 'Đang tạm dừng', noGuidance: 'Không có lời hướng dẫn. Chỉ có chuông bắt đầu và kết thúc.', done: 'Xong',
-      practiceNow: 'THỰC HÀNH NGAY', timeQuestion: 'Bạn có bao nhiêu thời gian?', continuePractice: 'Tiếp tục thực hành', tapToOpen: 'Chạm để mở trình phát', continueAction: 'Tiếp tục', pauseAction: 'Tạm dừng', withTeachers: 'Thiền cùng các vị thầy', viewAllTeachers: 'Xem tất cả các vị thầy', supportPractices: 'Thực hành hỗ trợ', recommendation: 'ĐỀ XUẤT', start: 'Bắt đầu', later: 'Để sau', practiceChoice: 'Bạn muốn thực hành thế nào?', recommendationHint: 'Gợi ý phù hợp với thời gian của bạn',
+      practiceNow: 'THỰC HÀNH NGAY', timeQuestion: 'Bạn có bao nhiêu thời gian?', continuePractice: 'Tiếp tục thực hành', tapToOpen: 'Chạm để mở trình phát', continueAction: 'Tiếp tục', pauseAction: 'Tạm dừng', withTeachers: 'Thiền cùng các vị thầy', viewAllTeachers: 'Xem tất cả các vị thầy', supportPractices: 'Thực hành hỗ trợ', recommendation: 'ĐỀ XUẤT', start: 'Bắt đầu', later: 'Để sau', practiceChoice: 'Bạn muốn thực hành thế nào?', recommendationHint: 'Gợi ý phù hợp với thời gian của bạn', backgroundSound: 'Âm nền', backgroundVolume: 'Âm lượng', chooseBackground: 'Chọn âm nền', percent: 'phần trăm',
       sessions: 'Các buổi thực hành', all: 'Tất cả', quick: 'Thực hành nhanh', selfPractice: 'Tự thực hành', unavailableMethod: 'Không tìm thấy phương pháp thiền này.', audioCredit: 'Âm thanh được chia sẻ với sự cho phép của',
     },
     listen: {
@@ -176,7 +176,7 @@ export const UI_TEXT = {
       sessionOptions: 'Session options', meditation: 'Meditation', sessionComplete: 'The session is complete.',
       ringBell: 'Ring the bell', pause: 'Pause', resume: 'Resume', endSession: 'End session',
       guidedPlaying: 'Guidance is playing', guidedPaused: 'Paused', noGuidance: 'No spoken guidance. Only beginning and ending bells.', done: 'Done',
-      practiceNow: 'PRACTICE NOW', timeQuestion: 'How much time do you have?', continuePractice: 'Continue practice', tapToOpen: 'Tap to open the player', continueAction: 'Continue', pauseAction: 'Pause', withTeachers: 'Meditate with teachers', viewAllTeachers: 'View all teachers', supportPractices: 'Supporting practices', recommendation: 'RECOMMENDED', start: 'Start', later: 'Maybe later', practiceChoice: 'How would you like to practise?', recommendationHint: 'Recommended for your available time',
+      practiceNow: 'PRACTICE NOW', timeQuestion: 'How much time do you have?', continuePractice: 'Continue practice', tapToOpen: 'Tap to open the player', continueAction: 'Continue', pauseAction: 'Pause', withTeachers: 'Meditate with teachers', viewAllTeachers: 'View all teachers', supportPractices: 'Supporting practices', recommendation: 'RECOMMENDED', start: 'Start', later: 'Maybe later', practiceChoice: 'How would you like to practise?', recommendationHint: 'Recommended for your available time', backgroundSound: 'Background sound', backgroundVolume: 'Volume', chooseBackground: 'Choose background sound', percent: 'percent',
       sessions: 'Practice sessions', all: 'All', quick: 'Quick practice', selfPractice: 'Self-guided practice', unavailableMethod: 'This meditation method could not be found.', audioCredit: 'Audio shared with permission from',
     },
     listen: {

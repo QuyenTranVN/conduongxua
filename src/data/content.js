@@ -66,7 +66,7 @@ export const TALKS = [
 
 export const TOPICS = ['Meditation','Letting Go','Anger','Mindfulness','Kamma','Relationships','Daily Life','Wisdom','Nibbāna']
 
-export const QUICK = [8, 15, 30, 60, 90, 120]
+export const QUICK = [8, 15, 30, 45, 60, 120]
 
 export const DAILY_PRACTICE = [
   { n:1, title:'Arrive', sub:'1 min', action:'Start', kind:'meditate', minutes:1 },
