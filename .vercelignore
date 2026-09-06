@@ -1,2 +1,5 @@
 dist
 **/.DS_Store
+
+# This is a standalone Cloudflare Workers project, not Vercel Functions.
+api/
