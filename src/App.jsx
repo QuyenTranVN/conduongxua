@@ -12,7 +12,6 @@ import Player from './screens/Player.jsx'
 import { Teachers, TeacherDetail } from './screens/Teachers.jsx'
 import Library from './screens/Library.jsx'
 import TalkDetail from './screens/TalkDetail.jsx'
-import MeditationMethod from './screens/MeditationMethod.jsx'
 import { AudioProvider } from './lib/audio.jsx'
 import AudioDetail from './screens/AudioDetail.jsx'
 import About from './screens/About.jsx'
@@ -33,7 +32,8 @@ function Screen() {
     case 'home':      return <Home />
     case 'meditate':  return <Meditate />
     case 'create':    return <CreateMeditation id={route.id} />
-    case 'method':    return <MeditationMethod id={route.id} />
+    // Meditation-method browsing is intentionally hidden for the current release.
+    case 'method':    return <Meditate />
     case 'session':   return <Session param={route.id} />
     case 'listen':    return <Listen />
     case 'player':    return <Player id={route.id} />
