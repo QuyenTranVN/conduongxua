@@ -1,5 +1,9 @@
 dist
 **/.DS_Store
 
+# Audio is served from VITE_AUDIO_CDN_URL in production. Do not upload the
+# local development fallback to Vercel deployments.
+public/audio/
+
 # This is a standalone Cloudflare Workers project, not Vercel Functions.
 /api/
