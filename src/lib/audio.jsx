@@ -1,9 +1,11 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
+﻿import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { audioService } from '../services/audioService.js'
 import { getAudioUrl, hasPlayableAudio } from '../services/audioStorage.js'
 import { useApp } from './store.jsx'
 import { uiText } from './format.js'
 import { audioProgressService } from '../services/audioProgressService.js'
+import { playbackOwnership } from '../services/playbackOwnership.js'
+import { usePlaybackRegistration } from './playbackOwnership.jsx'
 
 const AudioContext = createContext(null)
 const FAVORITES_KEY = 'con-duong-xua:audio-favorites'
@@ -20,6 +22,7 @@ export function AudioProvider({ children }) {
   const { lang } = useApp()
   const errors = uiText(lang).errors
   const elementRef = useRef(null)
+  const runtime = useRef({ id: null, playing: false, request: 0 })
   const lastPersistedSecond = useRef(-1)
   const loadTimer = useRef(null)
   const restartIdRef = useRef(null)
@@ -36,36 +39,73 @@ export function AudioProvider({ children }) {
   })
   const currentItem = audioService.getById(currentId)
 
-  const play = useCallback((id, nextQueue) => {
+  const saveElement = useCallback(() => {
+    const el = elementRef.current
+    // Use the loaded element's ID, never the next track's React state.
+    if (el?.dataset.id && el.readyState >= 1) audioProgressService.save(el.dataset.id, el.currentTime, el.duration)
+  }, [])
+  const interrupt = useCallback(() => {
+    runtime.current.playing = false
+    runtime.current.request += 1
+    window.clearTimeout(loadTimer.current)
+    saveElement()
+    elementRef.current?.pause()
+    setPlaying(false)
+  }, [saveElement])
+  usePlaybackRegistration('listening', interrupt)
+  const pause = useCallback(() => {
+    interrupt()
+    playbackOwnership.release('listening')
+  }, [interrupt])
+
+  const play = useCallback((id, nextQueue, restart = false) => {
     const item = audioService.getById(id)
-    if (!item || !hasPlayableAudio(item)) {
-      setPlaying(false)
+    const el = elementRef.current
+    if (!item || !hasPlayableAudio(item) || !el) {
       setError(errors.audioUnavailable)
       return false
     }
+    const lease = playbackOwnership.acquire('listening')
+    const changed = el.dataset.id !== id
+    if (changed || restart) interrupt()
     if (Array.isArray(nextQueue)) {
       setQueue(nextQueue.map((entry) => typeof entry === 'string' ? audioService.getById(entry) : entry).filter(hasPlayableAudio).map((entry) => entry.id))
     }
+    runtime.current.id = id
+    runtime.current.playing = true
+    const request = ++runtime.current.request
+    restartIdRef.current = restart ? id : null
     setError('')
     setCurrentId(id)
     setPlaying(true)
-    return true
-  }, [errors.audioUnavailable])
-  const playFromStart = useCallback((id, nextQueue) => {
-    restartIdRef.current = id
-    const started = play(id, nextQueue)
-    const el = elementRef.current
-    if (started && el?.dataset.id === id) {
-      try { el.currentTime = 0; setCurrentTime(0); restartIdRef.current = null } catch { /* metadata will reset it */ }
+    if (changed) {
+      el.dataset.id = id
+      el.src = getAudioUrl(item)
+      el.load()
+      setCurrentTime(0)
+      setDuration(item.duration || 0)
+      lastPersistedSecond.current = -1
+    } else if (restart || el.ended) {
+      try { el.currentTime = 0; setCurrentTime(0); restartIdRef.current = null } catch { /* reset once metadata loads */ }
     }
-    return started
-  }, [play])
-  const pause = useCallback(() => setPlaying(false), [])
+    el.playbackRate = rate
+    const stillCurrent = () => playbackOwnership.isCurrent(lease) && runtime.current.request === request && runtime.current.playing
+    window.clearTimeout(loadTimer.current)
+    loadTimer.current = window.setTimeout(() => {
+      if (stillCurrent() && el.readyState < 2) { pause(); setError(errors.audioTimeout) }
+    }, 15000)
+    el.play().catch(() => {
+      // Aborted requests from a previous track/mode must not pause the new owner.
+      if (stillCurrent()) { pause(); setError(errors.audioPlay) }
+    })
+    return true
+  }, [errors, interrupt, pause, rate])
+  const playFromStart = useCallback((id, nextQueue) => play(id, nextQueue, true), [play])
   const toggle = useCallback(() => {
-    if (!currentId) return
-    setError('')
-    setPlaying((value) => !value)
-  }, [currentId])
+    if (!runtime.current.id) return
+    if (runtime.current.playing && playbackOwnership.owns('listening')) pause()
+    else play(runtime.current.id)
+  }, [play, pause])
   const seekTo = useCallback((value) => {
     const el = elementRef.current
     if (!el || !Number.isFinite(Number(value))) return
@@ -76,7 +116,7 @@ export function AudioProvider({ children }) {
       setCurrentTime(nextTime)
     } catch { setError(errors.audioSeek) }
   }, [duration, errors.audioSeek])
-  const seek = useCallback((delta) => seekTo(currentTime + delta), [currentTime, seekTo])
+  const seek = useCallback((delta) => seekTo((elementRef.current?.currentTime || 0) + delta), [seekTo])
   const moveQueue = useCallback((direction) => {
     if (!currentId || !queue.length) return
     const nextId = queue[queue.indexOf(currentId) + direction]
@@ -91,85 +131,56 @@ export function AudioProvider({ children }) {
     try { localStorage.setItem(FAVORITES_KEY, JSON.stringify([...nextSet])) } catch { /* optional preference */ }
     return nextSet
   }), [])
+  useEffect(() => { if (elementRef.current) elementRef.current.playbackRate = rate }, [rate])
 
   useEffect(() => {
-    const el = elementRef.current
-    if (!el || !currentItem) return
-    const url = getAudioUrl(currentItem)
-    if (!url) { setError(errors.audioUnavailable); setPlaying(false); return }
-    if (el.dataset.id !== currentItem.id) {
-      el.dataset.id = currentItem.id
-      el.src = url
-      el.load()
-      setCurrentTime(0)
-      setDuration(currentItem.duration || 0)
-      lastPersistedSecond.current = -1
+    if (currentItem && playbackOwnership.owns('listening') && 'mediaSession' in navigator && typeof MediaMetadata !== 'undefined') {
+      navigator.mediaSession.metadata = new MediaMetadata({ title: currentItem.title, artist: currentItem.teacher || 'Con Đường Xưa', artwork: currentItem.image ? [{ src: currentItem.image }] : [] })
     }
-    el.playbackRate = rate
-    if (playing) {
-      window.clearTimeout(loadTimer.current)
-      loadTimer.current = window.setTimeout(() => {
-        if (el.readyState < 2) { el.pause(); setPlaying(false); setError(errors.audioTimeout) }
-      }, 15000)
-      el.play().catch(() => { window.clearTimeout(loadTimer.current); setPlaying(false); setError(errors.audioPlay) })
-    } else el.pause()
-    return () => window.clearTimeout(loadTimer.current)
-  }, [currentItem, playing, rate, errors])
+    const handlers = { play: () => play(runtime.current.id), pause, seekbackward: () => seek(-15), seekforward: () => seek(15), previoustrack: previous, nexttrack: next }
+    return playbackOwnership.setMediaActions('listening', handlers)
+  }, [currentItem, play, pause, seek, previous, next])
 
   useEffect(() => {
-    if (!currentItem || !('mediaSession' in navigator) || typeof MediaMetadata === 'undefined') return
-    navigator.mediaSession.metadata = new MediaMetadata({ title: currentItem.title, artist: currentItem.teacher || 'Con Đường Xưa', artwork: currentItem.image ? [{ src: currentItem.image }] : [] })
-    const handlers = { play: () => setPlaying(true), pause: () => setPlaying(false), seekbackward: () => seek(-15), seekforward: () => seek(15), previoustrack: previous, nexttrack: next }
-    Object.entries(handlers).forEach(([action, handler]) => { try { navigator.mediaSession.setActionHandler(action, handler) } catch { /* unsupported action */ } })
-  }, [currentItem, seek, previous, next])
-
-  const persistProgress = useCallback((time, total) => {
-    if (currentItem) audioProgressService.save(currentItem.id, time, total)
-  }, [currentItem])
-  useEffect(() => {
-    const preserveProgress = () => {
-      const el = elementRef.current
-      if (el && currentItem) persistProgress(el.currentTime, el.duration)
-    }
-    document.addEventListener('visibilitychange', preserveProgress)
-    window.addEventListener('pagehide', preserveProgress)
+    document.addEventListener('visibilitychange', saveElement)
+    window.addEventListener('pagehide', saveElement)
     return () => {
-      document.removeEventListener('visibilitychange', preserveProgress)
-      window.removeEventListener('pagehide', preserveProgress)
+      document.removeEventListener('visibilitychange', saveElement)
+      window.removeEventListener('pagehide', saveElement)
     }
-  }, [currentItem, persistProgress])
+  }, [saveElement])
   const getProgress = useCallback((id) => audioProgressService.get(id), [])
-  const continueItems = useMemo(() => audioProgressService.getUnfinished(audioService.getPlayable()), [currentTime])
-
+  const continueItems = useMemo(() => audioProgressService.getUnfinished(audioService.getPlayable()), [currentTime, playing, currentId])
   const value = useMemo(() => ({ currentItem, currentId, queue, playing, currentTime, duration, rate, error, favorites, play, playFromStart, pause, toggle, seek, seekTo, next, previous, setPlaybackRate, toggleFavorite, getProgress, continueItems, speeds: SPEEDS }), [currentItem, currentId, queue, playing, currentTime, duration, rate, error, favorites, play, playFromStart, pause, toggle, seek, seekTo, next, previous, setPlaybackRate, toggleFavorite, getProgress, continueItems])
 
   return <AudioContext.Provider value={value}>{children}<audio ref={elementRef} preload='metadata'
+    onPlay={() => { if (!playbackOwnership.owns('listening') || !runtime.current.playing) elementRef.current?.pause() }}
     onCanPlay={() => window.clearTimeout(loadTimer.current)}
     onLoadedMetadata={(event) => {
       const el = event.currentTarget
-      window.clearTimeout(loadTimer.current)
+      if (el.readyState < 1) return
       const total = Number.isFinite(el.duration) ? el.duration : (currentItem?.duration || 0)
       setDuration(total)
-      const shouldRestart = currentItem && restartIdRef.current === currentItem.id
-      if (shouldRestart) {
-        try { el.currentTime = 0; setCurrentTime(0) } catch { setCurrentTime(0) }
-        restartIdRef.current = null
-      }
-      const saved = !shouldRestart && currentItem && getProgress(currentItem.id)
-      if (saved && !saved.completed) {
-        const restored = Math.max(0, Math.min(saved.currentTime, total || saved.duration))
-        try { el.currentTime = restored; setCurrentTime(restored) } catch { setCurrentTime(0) }
-      }
+      const shouldRestart = restartIdRef.current === el.dataset.id
+      restartIdRef.current = null
+      const saved = !shouldRestart && getProgress(el.dataset.id)
+      const restored = saved && !saved.completed ? Math.max(0, Math.min(saved.currentTime, total || saved.duration)) : 0
+      try { el.currentTime = restored; setCurrentTime(restored) } catch { setCurrentTime(0) }
     }}
     onTimeUpdate={(event) => {
       const el = event.currentTarget
       const second = Math.floor(el.currentTime)
       setCurrentTime(el.currentTime)
-      if (second % 5 === 0 && second !== lastPersistedSecond.current) { lastPersistedSecond.current = second; persistProgress(el.currentTime, el.duration) }
+      if (runtime.current.playing && second % 5 === 0 && second !== lastPersistedSecond.current) { lastPersistedSecond.current = second; saveElement() }
     }}
-    onPause={(event) => persistProgress(event.currentTarget.currentTime, event.currentTarget.duration)}
-    onEnded={(event) => { persistProgress(event.currentTarget.duration, event.currentTarget.duration); setPlaying(false); next() }}
-    onError={() => { window.clearTimeout(loadTimer.current); setPlaying(false); setError(errors.audioLoad) }} />
+    onPause={(event) => { if (event.currentTarget.paused && !event.currentTarget.ended && runtime.current.playing) pause() }}
+    onEnded={(event) => {
+      if (!playbackOwnership.owns('listening') || !runtime.current.playing || !event.currentTarget.ended) return
+      saveElement()
+      pause()
+      next()
+    }}
+    onError={() => { if (runtime.current.playing && elementRef.current?.error) { pause(); setError(errors.audioLoad) } }} />
   </AudioContext.Provider>
 }
 

@@ -4,8 +4,9 @@ import Sheet from '../Sheet.jsx'
 import { GUIDANCE_DESCRIPTIONS, GUIDANCE_DESCRIPTIONS_EN, GUIDANCE_LABELS, GUIDANCE_LABELS_EN } from '../../data/meditation.js'
 import { meditationService } from '../../services/meditationService.js'
 import { uiText } from '../../lib/format.js'
+import { unlockBell } from '../../lib/bell.js'
 import { AMBIENT_SOUNDS, ambientAudio, ambientSoundPreferences } from '../../services/ambientSoundService.js'
-import { playBellSequence } from '../../lib/bell.js'
+
 
 export function QuickPracticeDurationSelector({ durations, onSelect, lang = 'vi' }) {
   const unit = lang === 'en' ? 'min' : 'phút'
@@ -63,10 +64,11 @@ export function QuickPracticeSheet({ minutes, onClose, onStart, lang = 'vi', pre
   const start = () => {
     if (guidanceType === 'silent') ambientSoundPreferences.save({ lastSilentDuration: minutes * 60, lastBackgroundSound: backgroundSound, lastBackgroundVolume: backgroundVolume })
     if (guidanceType === 'silent') {
+      unlockBell()
       if (backgroundSound !== 'none') ambientAudio.unlock()
-      playBellSequence(3, .55)
+
     }
-    onStart(recommendation, guidanceType === 'silent' ? { backgroundSound, backgroundVolume, startDelaySeconds: 8, beginningBellHandled: true } : undefined)
+    onStart(recommendation, guidanceType === 'silent' ? { backgroundSound, backgroundVolume, startDelaySeconds: 8 } : undefined)
   }
 
   return <Sheet open={Boolean(minutes)} onClose={onClose} label={copy.practiceChoice} className='quick-practice-sheet'>

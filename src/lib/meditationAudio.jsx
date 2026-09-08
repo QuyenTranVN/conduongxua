@@ -1,25 +1,23 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
+﻿import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { meditationService } from '../services/meditationService.js'
-import { playBellSequence, stopBellSequence } from './bell.js'
-import { useAudio } from './audio.jsx'
+import { playBell, playBellSequence, stopBellSequence } from './bell.js'
 import { getAudioUrl, hasPlayableAudio } from '../services/audioStorage.js'
 import { useApp } from './store.jsx'
 import { uiText } from './format.js'
 import { ambientAudio } from '../services/ambientSoundService.js'
+import { playbackOwnership } from '../services/playbackOwnership.js'
+import { usePlaybackRegistration } from './playbackOwnership.jsx'
 
 const MeditationAudioContext = createContext(null)
+const modeFor = (session) => session?.guidanceType === 'guided' ? 'guidedMeditation' : 'silentMeditation'
 
 export function MeditationAudioProvider({ children }) {
   const { lang } = useApp()
   const errors = uiText(lang).errors
-  const listeningAudio = useAudio()
   const audioRef = useRef(null)
+  const runtime = useRef({ session: null, time: 0, total: 0, playing: false, startedAt: null, tickAt: 0, request: 0, lease: null, ambience: { backgroundSound: 'none', backgroundVolume: .25 } })
   const endBellTimer = useRef(null)
-  const suppressPauseSave = useRef(false)
-  const startedAt = useRef(null)
   const lastSaved = useRef(-1)
-  const lastTickAt = useRef(Date.now())
-  const ambienceRef = useRef({ backgroundSound: 'none', backgroundVolume: .25 })
   const ambienceFadeStarted = useRef(false)
   const [sessionId, setSessionId] = useState(null)
   const [playing, setPlaying] = useState(false)
@@ -27,175 +25,206 @@ export function MeditationAudioProvider({ children }) {
   const [duration, setDuration] = useState(0)
   const [error, setError] = useState('')
   const session = meditationService.getSession(sessionId)
-  const usesAudioClock = session?.guidanceType === 'guided' && hasPlayableAudio(session)
 
-  const save = useCallback((completed, time, total) => {
-    if (!sessionId || !total) return
-    const progress = { sessionId, meditationSessionId: sessionId, startedAt: startedAt.current || new Date().toISOString(), progressSeconds: completed ? total : time, durationSeconds: total, durationCompleted: completed ? total : time, completed }
+  const save = useCallback((completed = false) => {
+    const r = runtime.current
+    if (!r.session || !r.total) return
+    const progress = { sessionId: r.session.id, meditationSessionId: r.session.id, startedAt: r.startedAt, progressSeconds: r.time, durationSeconds: r.total, durationCompleted: r.time, completed, ambience: r.ambience }
     completed ? meditationService.completeSession(progress) : meditationService.saveProgress(progress)
-  }, [sessionId])
+  }, [])
+  const captureTime = useCallback(() => {
+    const r = runtime.current
+    const el = audioRef.current
+    if (r.session?.guidanceType === 'guided') {
+      if (el?.dataset.id === r.session.id && el.readyState >= 1) {
+        r.time = el.currentTime
+        if (Number.isFinite(el.duration)) r.total = el.duration
+      }
+    } else if (r.playing) {
+      r.time = Math.min(r.total, r.time + Math.max(0, Date.now() - r.tickAt) / 1000)
+      r.tickAt = Date.now()
+    }
+    setCurrentTime(r.time)
+  }, [])
+  const interrupt = useCallback(() => {
+    captureTime()
+    const r = runtime.current
+    r.playing = false
+    r.request += 1
+    save(r.time >= r.total && r.total > 0)
+    audioRef.current?.pause()
+    window.clearTimeout(endBellTimer.current)
+    endBellTimer.current = null
+    stopBellSequence()
+    ambientAudio.pause()
+    setPlaying(false)
+  }, [captureTime, save])
+  usePlaybackRegistration('guidedMeditation', interrupt)
+  usePlaybackRegistration('silentMeditation', interrupt)
+  const pause = useCallback(() => {
+    const r = runtime.current
+    if (r.session) playbackOwnership.pause(modeFor(r.session))
+  }, [])
 
-  const startSession = useCallback((nextSession, { restart = false, ambience } = {}) => {
-    if (!nextSession) return
+  const playMedia = useCallback(() => {
+    const r = runtime.current
+    const el = audioRef.current
+    const lease = r.lease
+    const request = ++r.request
+    if (!el || !r.session || !playbackOwnership.isCurrent(lease)) return
+    if (el.dataset.id !== r.session.id) {
+      el.dataset.id = r.session.id
+      el.src = getAudioUrl(r.session)
+      el.load()
+    } else if (el.readyState >= 1) {
+      try { el.currentTime = r.time } catch { /* metadata will restore progress */ }
+    }
+    el.play().catch(() => {
+      if (playbackOwnership.isCurrent(lease) && runtime.current.request === request && runtime.current.playing) {
+        pause()
+        setError(errors.meditationPlay)
+      }
+    })
+  }, [errors.meditationPlay, pause])
+
+  const startSession = useCallback((nextSession, { restart = false, ambience, beginningBell = false } = {}) => {
+    if (!nextSession) return false
     if (nextSession.guidanceType === 'guided' && !hasPlayableAudio(nextSession)) {
-      setPlaying(false)
       setError(errors.meditationUnavailable)
       return false
     }
-    if (endBellTimer.current) {
-      window.clearTimeout(endBellTimer.current)
-      endBellTimer.current = null
-    }
-    listeningAudio.pause()
+    const r = runtime.current
+    if (r.session && playbackOwnership.owns(modeFor(r.session))) interrupt()
+    const lease = playbackOwnership.acquire(modeFor(nextSession))
+    const saved = meditationService.getContinuePractice()
+    const sameSession = r.session?.id === nextSession.id
+    const resumesSaved = !restart && saved?.meditationSessionId === nextSession.id
+    const resumeAt = restart ? 0 : sameSession ? r.time : resumesSaved ? saved.progressSeconds : 0
+    if (restart) meditationService.discardPractice(nextSession.id)
     ambientAudio.stop(0)
-    ambienceRef.current = nextSession.guidanceType === 'silent'
-      ? { backgroundSound: ambience?.backgroundSound || 'none', backgroundVolume: ambience?.backgroundVolume ?? .25 }
+    r.session = nextSession
+    r.time = resumeAt
+    r.total = nextSession.durationSeconds
+    r.startedAt = !restart && sameSession ? r.startedAt : resumesSaved ? saved.startedAt : new Date().toISOString()
+    r.ambience = nextSession.guidanceType === 'silent'
+      ? { backgroundSound: ambience?.backgroundSound ?? (sameSession && !restart ? r.ambience.backgroundSound : saved?.ambience?.backgroundSound) ?? 'none', backgroundVolume: ambience?.backgroundVolume ?? (sameSession && !restart ? r.ambience.backgroundVolume : saved?.ambience?.backgroundVolume) ?? .25 }
       : { backgroundSound: 'none', backgroundVolume: .25 }
+    r.playing = true
+    r.lease = lease
+    r.tickAt = Date.now()
     ambienceFadeStarted.current = false
-    suppressPauseSave.current = restart && nextSession.id === sessionId
-    audioRef.current?.pause()
-    setError('')
-    if (restart || nextSession.id !== sessionId) {
-      const saved = meditationService.getContinuePractice()
-      const resumesSavedSession = !restart && (saved?.meditationSessionId === nextSession.id || saved?.sessionId === nextSession.id)
-      const resumeAt = resumesSavedSession ? (saved.progressSeconds ?? saved.durationCompleted ?? 0) : 0
-      if (restart) meditationService.discardPractice(nextSession.id)
-      meditationService.discardOtherIncompletePractices(nextSession.id)
-      startedAt.current = resumesSavedSession ? (saved.startedAt || new Date().toISOString()) : new Date().toISOString()
-      setSessionId(nextSession.id)
-      setCurrentTime(resumeAt)
-      setDuration(nextSession.durationSeconds)
-      lastSaved.current = -1
-      lastTickAt.current = Date.now()
-      if (restart && nextSession.id === sessionId && audioRef.current && nextSession.guidanceType === 'guided' && hasPlayableAudio(nextSession)) {
-        audioRef.current.currentTime = 0
-        audioRef.current.play().catch(() => { setPlaying(false); setError(errors.meditationPlay) })
-      }
-    }
+    lastSaved.current = -1
+    setSessionId(nextSession.id)
+    setCurrentTime(r.time)
+    setDuration(r.total)
     setPlaying(true)
-    if (nextSession.guidanceType === 'silent' && ambienceRef.current.backgroundSound !== 'none') {
-      ambientAudio.start(ambienceRef.current.backgroundSound, ambienceRef.current.backgroundVolume, 3, ambience?.startDelaySeconds || 0)
-        .catch(() => { /* the timer remains usable without ambience */ })
+    setError('')
+    if (nextSession.guidanceType === 'guided') playMedia()
+    else {
+      if (beginningBell) playBellSequence(3, .55)
+      if (r.ambience.backgroundSound !== 'none') ambientAudio.start(r.ambience.backgroundSound, r.ambience.backgroundVolume, 3, ambience?.startDelaySeconds || 0)
     }
     return true
-  }, [sessionId, listeningAudio, errors])
+  }, [errors.meditationUnavailable, interrupt, playMedia])
+
   const stopSession = useCallback(() => {
-    stopBellSequence()
-    ambientAudio.stop(0)
-    if (!sessionId) return
-    if (endBellTimer.current) {
-      window.clearTimeout(endBellTimer.current)
-      endBellTimer.current = null
-    }
-    suppressPauseSave.current = true
-    audioRef.current?.pause()
-    meditationService.discardPractice(sessionId)
+    const r = runtime.current
+    if (!r.session) return
+    const mode = modeFor(r.session)
+    if (playbackOwnership.owns(mode)) { interrupt(); ambientAudio.stop(0); playbackOwnership.release(mode) }
+    meditationService.discardPractice(r.session.id)
+    r.playing = false
+    r.session = null
+    r.time = 0
+    r.total = 0
     setPlaying(false)
     setSessionId(null)
     setCurrentTime(0)
     setDuration(0)
     setError('')
-    startedAt.current = null
-    lastSaved.current = -1
-    lastTickAt.current = Date.now()
-    ambienceFadeStarted.current = false
-  }, [sessionId])
-  const toggle = useCallback(() => {
-    if (!sessionId) return
-    const total = duration || session?.durationSeconds || 0
-    if (!playing && total > 0 && currentTime >= total) {
-      if (endBellTimer.current) {
-        window.clearTimeout(endBellTimer.current)
-        endBellTimer.current = null
-      }
-      if (audioRef.current && usesAudioClock) audioRef.current.currentTime = 0
-      startedAt.current = new Date().toISOString()
-      lastSaved.current = -1
-      lastTickAt.current = Date.now()
-      ambienceFadeStarted.current = false
-      setCurrentTime(0)
-      setPlaying(true)
-      if (!usesAudioClock) {
-        playBellSequence(3, .55)
-        if (ambienceRef.current.backgroundSound !== 'none') ambientAudio.start(ambienceRef.current.backgroundSound, ambienceRef.current.backgroundVolume, 3)
-      }
+  }, [interrupt])
+  const resume = useCallback(() => {
+    const r = runtime.current
+    if (!r.session) return
+    if (r.time >= r.total) {
+      startSession(r.session, { restart: true, ambience: r.ambience, beginningBell: r.session.guidanceType === 'silent' })
       return
     }
-    if (!playing && session && !usesAudioClock) {
-      ambientAudio.resume()
-    } else if (playing && !usesAudioClock) ambientAudio.pause()
-    setPlaying((value) => {
-      if (!value) lastTickAt.current = Date.now()
-      return !value
-    })
-  }, [sessionId, session, playing, currentTime, duration, usesAudioClock])
+    r.lease = playbackOwnership.acquire(modeFor(r.session))
+    r.playing = true
+    r.tickAt = Date.now()
+    setPlaying(true)
+    setError('')
+    if (r.session.guidanceType === 'guided') playMedia()
+    else if (r.ambience.backgroundSound !== 'none') {
+      const lease = r.lease
+      ambientAudio.resume().then((resumed) => {
+        if (!resumed && playbackOwnership.isCurrent(lease) && runtime.current.playing) ambientAudio.start(r.ambience.backgroundSound, r.ambience.backgroundVolume, .8)
+      }).catch(() => { /* the timer remains available */ })
+    }
+  }, [playMedia, startSession])
+  const toggle = useCallback(() => {
+    if (runtime.current.playing) pause()
+    else resume()
+  }, [pause, resume])
+  const ringBell = useCallback(() => {
+    const r = runtime.current
+    if (!r.session) return
+    if (!playbackOwnership.owns(modeFor(r.session))) r.lease = playbackOwnership.acquire(modeFor(r.session))
+    playBell(.5)
+  }, [])
   const seekTo = useCallback((seconds) => {
     const el = audioRef.current
-    if (!el) return
-    if (!Number.isFinite(Number(seconds))) return
-    const next = Math.max(0, Math.min(Number(seconds), duration || Number(seconds)))
-    try { el.currentTime = next; setCurrentTime(next) } catch { setError(errors.meditationSeek) }
-  }, [duration, errors.meditationSeek])
-  const seek = useCallback((delta) => seekTo(currentTime + delta), [currentTime, seekTo])
+    const r = runtime.current
+    if (!el || r.session?.guidanceType !== 'guided' || !Number.isFinite(Number(seconds))) return
+    try {
+      r.time = Math.max(0, Math.min(Number(seconds), r.total || Number(seconds)))
+      el.currentTime = r.time
+      setCurrentTime(r.time)
+    } catch { setError(errors.meditationSeek) }
+  }, [errors.meditationSeek])
+  const seek = useCallback((delta) => seekTo(runtime.current.time + delta), [seekTo])
 
+  const scheduleEndBells = useCallback((delay) => {
+    const lease = runtime.current.lease
+    window.clearTimeout(endBellTimer.current)
+    endBellTimer.current = window.setTimeout(() => {
+      if (!playbackOwnership.isCurrent(lease)) return
+      playBellSequence(3, .6)
+      endBellTimer.current = window.setTimeout(() => {
+        if (playbackOwnership.isCurrent(lease)) playbackOwnership.release(lease.mode)
+        endBellTimer.current = null
+      }, 12000)
+    }, delay)
+  }, [])
   useEffect(() => {
-    const el = audioRef.current
-    if (!el || !usesAudioClock) return
-    const url = getAudioUrl(session)
-    if (!url) { setPlaying(false); setError(errors.meditationUnavailable); return }
-    if (el.dataset.id !== session.id) {
-      el.dataset.id = session.id
-      el.src = url
-      el.load()
-    }
-    if (playing) el.play().catch(() => { setPlaying(false); setError(errors.meditationPlay) })
-    else el.pause()
-  }, [session, playing, errors, usesAudioClock])
-
-  useEffect(() => {
-    if (!playing || !session || usesAudioClock) return
-    lastTickAt.current = Date.now()
+    if (!playing || session?.guidanceType !== 'silent') return
     const timer = window.setInterval(() => {
-      setCurrentTime((value) => {
-        const now = Date.now()
-        const elapsedSeconds = Math.max(0, (now - lastTickAt.current) / 1000)
-        lastTickAt.current = now
-        const next = Math.min(value + elapsedSeconds, duration || session.durationSeconds)
-        const wholeSecond = Math.floor(next)
-        if (wholeSecond > 0 && wholeSecond % 5 === 0 && wholeSecond !== lastSaved.current) {
-          lastSaved.current = wholeSecond
-          save(false, next, duration || session.durationSeconds)
-        }
-        const remaining = (duration || session.durationSeconds) - next
-        if (remaining <= 2.5 && !ambienceFadeStarted.current) {
-          ambienceFadeStarted.current = true
-          ambientAudio.stop(2.4)
-        }
-        if (next >= (duration || session.durationSeconds)) {
-          window.clearInterval(timer)
-          setPlaying(false)
-          save(true, next, duration || session.durationSeconds)
-          if (!ambienceFadeStarted.current) ambientAudio.stop(2)
-          window.setTimeout(() => playBellSequence(3, .6), ambienceFadeStarted.current ? 150 : 2100)
-        }
-        return next
-      })
+      const r = runtime.current
+      if (!r.playing || !playbackOwnership.isCurrent(r.lease)) return
+      captureTime()
+      const second = Math.floor(r.time)
+      if (second > 0 && second % 5 === 0 && second !== lastSaved.current) { lastSaved.current = second; save() }
+      if (r.total - r.time <= 2.5 && !ambienceFadeStarted.current) { ambienceFadeStarted.current = true; ambientAudio.stop(2.4) }
+      if (r.time >= r.total) {
+        r.playing = false
+        setPlaying(false)
+        save(true)
+        scheduleEndBells(150)
+      }
     }, 250)
     return () => window.clearInterval(timer)
-  }, [playing, session, duration, save, usesAudioClock])
+  }, [playing, session, captureTime, save, scheduleEndBells])
 
   useEffect(() => {
     const preserveProgress = () => {
-      if (!sessionId) return
-      const el = audioRef.current
-      const time = usesAudioClock && el ? el.currentTime : currentTime
-      const total = usesAudioClock && el ? (el.duration || duration) : duration
-      save(false, time, total)
-      if (!usesAudioClock && document.visibilityState === 'hidden') ambientAudio.pause()
-      if (document.visibilityState === 'visible') {
-        lastTickAt.current = Date.now()
-        if (!usesAudioClock && playing) ambientAudio.resume()
-      }
+      const r = runtime.current
+      if (!r.session) return
+      captureTime()
+      save(r.time >= r.total)
+      if (!r.playing || !playbackOwnership.isCurrent(r.lease) || r.session.guidanceType !== 'silent') return
+      if (document.visibilityState === 'hidden') ambientAudio.pause()
+      else { r.tickAt = Date.now(); ambientAudio.resume() }
     }
     document.addEventListener('visibilitychange', preserveProgress)
     window.addEventListener('pagehide', preserveProgress)
@@ -203,15 +232,47 @@ export function MeditationAudioProvider({ children }) {
       document.removeEventListener('visibilitychange', preserveProgress)
       window.removeEventListener('pagehide', preserveProgress)
     }
-  }, [sessionId, currentTime, duration, save, usesAudioClock, playing])
+  }, [captureTime, save])
 
-  useEffect(() => () => {
-    if (endBellTimer.current) window.clearTimeout(endBellTimer.current)
-    ambientAudio.stop(0)
-  }, [])
+  useEffect(() => {
+    const actions = { play: resume, pause, seekbackward: () => seek(-15), seekforward: () => seek(15) }
+    const cleanGuided = playbackOwnership.setMediaActions('guidedMeditation', actions)
+    const cleanSilent = playbackOwnership.setMediaActions('silentMeditation', { play: resume, pause })
+    return () => { cleanGuided(); cleanSilent() }
+  }, [resume, pause, seek])
 
-  const value = useMemo(() => ({ session, sessionId, playing, currentTime, duration, error, startSession, stopSession, toggle, seek, seekTo }), [session, sessionId, playing, currentTime, duration, error, startSession, stopSession, toggle, seek, seekTo])
-  return <MeditationAudioContext.Provider value={value}>{children}<audio ref={audioRef} preload='metadata' onLoadedMetadata={(event) => { const el = event.currentTarget; setDuration(el.duration || session?.durationSeconds || 0); if (currentTime > 0) el.currentTime = currentTime }} onTimeUpdate={(event) => { const el = event.currentTarget; const second = Math.floor(el.currentTime); setCurrentTime(el.currentTime); if (second > 0 && second % 5 === 0 && second !== lastSaved.current) { lastSaved.current = second; save(false, el.currentTime, el.duration) } }} onPause={(event) => { if (suppressPauseSave.current) { suppressPauseSave.current = false; return } save(false, event.currentTarget.currentTime, event.currentTarget.duration) }} onEnded={(event) => { setCurrentTime(event.currentTarget.duration); setPlaying(false); save(true, event.currentTarget.duration, event.currentTarget.duration); endBellTimer.current = window.setTimeout(() => { playBellSequence(3, .6); endBellTimer.current = null }, 10000) }} onError={() => { setPlaying(false); setError(errors.meditationPlay) }} /></MeditationAudioContext.Provider>
+  const value = useMemo(() => ({ session, sessionId, playing, currentTime, duration, error, startSession, stopSession, pause, resume, toggle, seek, seekTo, ringBell }), [session, sessionId, playing, currentTime, duration, error, startSession, stopSession, pause, resume, toggle, seek, seekTo, ringBell])
+  return <MeditationAudioContext.Provider value={value}>{children}<audio ref={audioRef} preload='metadata'
+    onPlay={() => { const r = runtime.current; if (!r.playing || !playbackOwnership.isCurrent(r.lease) || r.session?.guidanceType !== 'guided') audioRef.current?.pause() }}
+    onLoadedMetadata={(event) => {
+      const r = runtime.current
+      const el = event.currentTarget
+      if (r.session?.guidanceType !== 'guided' || el.dataset.id !== r.session.id || el.readyState < 1) return
+      r.total = Number.isFinite(el.duration) ? el.duration : r.session.durationSeconds
+      setDuration(r.total)
+      try { el.currentTime = Math.min(r.time, r.total) } catch { /* a later seek can retry */ }
+    }}
+    onTimeUpdate={(event) => {
+      const r = runtime.current
+      if (r.session?.guidanceType !== 'guided' || event.currentTarget.dataset.id !== r.session.id) return
+      r.time = event.currentTarget.currentTime
+      setCurrentTime(r.time)
+      const second = Math.floor(r.time)
+      if (r.playing && second > 0 && second % 5 === 0 && second !== lastSaved.current) { lastSaved.current = second; save() }
+    }}
+    onPause={(event) => { if (runtime.current.playing && runtime.current.session?.guidanceType === 'guided' && event.currentTarget.paused && !event.currentTarget.ended) pause() }}
+    onEnded={(event) => {
+      const r = runtime.current
+      if (!r.playing || !playbackOwnership.isCurrent(r.lease) || r.session?.guidanceType !== 'guided' || !event.currentTarget.ended) return
+      r.time = event.currentTarget.duration
+      r.playing = false
+      setCurrentTime(r.time)
+      setPlaying(false)
+      save(true)
+      scheduleEndBells(10000)
+    }}
+    onError={() => { if (runtime.current.playing && runtime.current.session?.guidanceType === 'guided' && audioRef.current?.error) { pause(); setError(errors.meditationPlay) } }} />
+  </MeditationAudioContext.Provider>
 }
 
 export const useMeditationAudio = () => {

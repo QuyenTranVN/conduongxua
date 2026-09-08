@@ -3,7 +3,7 @@ import Icon from '../components/Icon.jsx'
 import Img from '../components/Img.jsx'
 import Scrubber from '../components/Scrubber.jsx'
 import { useApp } from '../lib/store.jsx'
-import { playBell, playBellSequence, stopBellSequence } from '../lib/bell.js'
+
 import { teacherById } from '../data/content.js'
 import { GUIDANCE_LABELS, GUIDANCE_LABELS_EN, MEDITATION_AUDIO_CREDIT } from '../data/meditation.js'
 import { meditationService } from '../services/meditationService.js'
@@ -35,7 +35,6 @@ export default function Session({ param }) {
   const teacher = teacherById(session.teacherId)
   const audioCredit = MEDITATION_AUDIO_CREDIT[session.audioCredit]
   const total = Math.round((cfg.minutes || session.durationSeconds / 60) * 60)
-  const started = useRef(false)
   const activated = useRef(false)
   const isGuided = session.guidanceType === 'guided'
   const isActiveSession = guidedAudio.sessionId === session.id
@@ -51,16 +50,9 @@ export default function Session({ param }) {
   const guidanceLabels = lang === 'en' ? GUIDANCE_LABELS_EN : GUIDANCE_LABELS
 
   useEffect(() => {
-    if (started.current) return
-    started.current = true
-    if (!isGuided && cfg.bells?.beginning) playBellSequence(3, 0.55)
-    return () => { if (!isGuided) stopBellSequence() }
-  }, [cfg, isGuided])
-
-  useEffect(() => {
     if (activated.current) return
     activated.current = true
-    if (cfg.restart || guidedAudio.sessionId !== session.id) guidedAudio.startSession(session, { restart: Boolean(cfg.restart), ambience: cfg.ambience })
+    if (cfg.restart || guidedAudio.sessionId !== session.id) guidedAudio.startSession(session, { restart: Boolean(cfg.restart), ambience: cfg.ambience, beginningBell: !isGuided && cfg.bells?.beginning })
   }, [session, cfg, isGuided, guidedAudio.sessionId, guidedAudio.startSession])
 
   useEffect(() => {
@@ -81,7 +73,7 @@ export default function Session({ param }) {
     return () => window.clearInterval(timer)
   }, [isGuided, isActiveSession, guidedAudio.playing, total])
 
-  const close = () => { if (!isGuided) { stopBellSequence(); guidedAudio.stopSession() } back() }
+  const close = () => { if (!isGuided) { guidedAudio.stopSession() } back() }
   const stop = () => { guidedAudio.stopSession(); back() }
   const seekGuidedTo = (seconds) => {
     if (!isGuided) return
@@ -113,7 +105,7 @@ export default function Session({ param }) {
         </div>
         {isGuided && <div className='guided-seek'><Scrubber pos={elapsed} total={total} onSeek={seekGuidedTo} label={lang === 'en' ? 'Meditation position' : 'Vị trí bài thiền'} /></div>}
         <div className='grow' />
-        {completed ? <button className='btn btn-primary btn-block' onClick={close}>{completionCopy.done}</button> : isGuided ? <div className='transport guided-transport'><button onClick={() => seekGuided(-15)} aria-label={uiText(lang).player.back15}><Icon name='back15' size={25} /></button><button className='primary' onClick={guidedAudio.toggle} aria-label={effectiveRunning ? copy.pause : copy.resume} aria-pressed={effectiveRunning}><Icon name={effectiveRunning ? 'pause' : 'play'} size={28} fill={!effectiveRunning} /></button><button onClick={() => seekGuided(15)} aria-label={uiText(lang).player.forward15}><Icon name='fwd15' size={25} /></button></div> : <div className='transport'><button onClick={() => playBell(0.5)} aria-label={copy.ringBell}><Icon name='bell' size={24} /></button><button className='primary' onClick={guidedAudio.toggle} aria-label={effectiveRunning ? copy.pause : copy.resume} aria-pressed={effectiveRunning}><Icon name={effectiveRunning ? 'pause' : 'play'} size={28} fill={!effectiveRunning} /></button><button onClick={stop} aria-label={copy.endSession}><Icon name='stop' size={22} /></button></div>}
+        {completed ? <button className='btn btn-primary btn-block' onClick={close}>{completionCopy.done}</button> : isGuided ? <div className='transport guided-transport'><button onClick={() => seekGuided(-15)} aria-label={uiText(lang).player.back15}><Icon name='back15' size={25} /></button><button className='primary' onClick={guidedAudio.toggle} aria-label={effectiveRunning ? copy.pause : copy.resume} aria-pressed={effectiveRunning}><Icon name={effectiveRunning ? 'pause' : 'play'} size={28} fill={!effectiveRunning} /></button><button onClick={() => seekGuided(15)} aria-label={uiText(lang).player.forward15}><Icon name='fwd15' size={25} /></button></div> : <div className='transport'><button onClick={guidedAudio.ringBell} aria-label={copy.ringBell}><Icon name='bell' size={24} /></button><button className='primary' onClick={guidedAudio.toggle} aria-label={effectiveRunning ? copy.pause : copy.resume} aria-pressed={effectiveRunning}><Icon name={effectiveRunning ? 'pause' : 'play'} size={28} fill={!effectiveRunning} /></button><button onClick={stop} aria-label={copy.endSession}><Icon name='stop' size={22} /></button></div>}
         {audioCredit && <p className='meditation-audio-credit'>{copy.audioCredit} <a href={audioCredit.url} target='_blank' rel='noopener noreferrer'>{audioCredit.name}</a>.</p>}
         {isGuided && session.transcript && <button className='player-transcript'><Icon name='transcript' size={18} /> Bản chép lời</button>}
       </div>

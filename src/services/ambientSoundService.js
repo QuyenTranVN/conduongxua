@@ -50,6 +50,8 @@ let startedAt = 0
 let pausedOffset = 0
 let operationId = 0
 const fileBufferCache = new Map()
+const fadingSources = new Set()
+const stopFades = () => [...fadingSources].forEach((stop) => stop())
 
 const getContext = () => (context ||= new (window.AudioContext || window.webkitAudioContext)())
 const seededRandom = (seed) => () => {
@@ -123,9 +125,11 @@ export const ambientAudio = {
   async start(sound, volume = DEFAULTS.lastBackgroundVolume, fadeSeconds = 3, delaySeconds = 0) {
     this.stop(0)
     if (!VALID_SOUNDS.has(sound) || sound === 'none') return false
+    activeSound = sound
+    targetVolume = clampVolume(volume)
     const currentOperation = operationId
-    const ac = getContext()
     try {
+      const ac = getContext()
       await ac.resume()
       const nextBuffer = await loadSoundBuffer(ac, sound)
       if (currentOperation !== operationId) return false
@@ -146,18 +150,25 @@ export const ambientAudio = {
     }
   },
   pause() {
+    operationId += 1
+    stopFades()
     if (!context || !source || !buffer) return
     pausedOffset = (pausedOffset + context.currentTime - startedAt) % buffer.duration
     stopSource()
   },
   async resume(fadeSeconds = .8) {
-    if (!context || !buffer || source || activeSound === 'none') return
-    await context.resume()
+    if (!context || activeSound === 'none') return false
+    if (source) return true
+    if (!buffer) return this.start(activeSound, targetVolume, fadeSeconds)
+    const currentOperation = ++operationId
+    try { await context.resume() } catch { return false }
+    if (currentOperation !== operationId || !buffer || !gain || source) return
     const now = context.currentTime
     gain.gain.cancelScheduledValues(now)
     gain.gain.setValueAtTime(0, now)
     gain.gain.linearRampToValueAtTime(targetVolume, now + fadeSeconds)
     connectSource(pausedOffset)
+    return true
   },
   setVolume(volume) {
     targetVolume = clampVolume(volume)
@@ -168,6 +179,7 @@ export const ambientAudio = {
   },
   stop(fadeSeconds = 0) {
     operationId += 1
+    stopFades()
     if (!context || !gain) {
       stopSource(); buffer = null; activeSound = 'none'; pausedOffset = 0
       return
@@ -186,12 +198,17 @@ export const ambientAudio = {
       buffer = null
       activeSound = 'none'
       pausedOffset = 0
-      window.setTimeout(() => {
+      let timer
+      const finish = () => {
+        window.clearTimeout(timer)
+        fadingSources.delete(finish)
         try { oldSource.stop() } catch { /* source may already be stopped */ }
         try { oldSource.disconnect() } catch { /* optional cleanup */ }
         try { oldFilter.disconnect() } catch { /* optional cleanup */ }
         try { oldGain.disconnect() } catch { /* optional cleanup */ }
-      }, fadeSeconds * 1000 + 80)
+      }
+      fadingSources.add(finish)
+      timer = window.setTimeout(finish, fadeSeconds * 1000 + 80)
     } else {
       const oldGain = gain
       stopSource()

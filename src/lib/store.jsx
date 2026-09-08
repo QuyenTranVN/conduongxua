@@ -1,13 +1,16 @@
 /** @format */
 
-import { createContext, useContext, useEffect, useMemo, useState } from 'react'
+import { createContext, useContext, useEffect, useMemo, useState, useSyncExternalStore } from 'react'
 import { settingsService } from '../services/settingsService.js'
 import { readLocalJson, writeLocalJson } from '../services/localStorageService.js'
+
+import { playbackOwnership } from '../services/playbackOwnership.js'
 
 const Ctx = createContext(null)
 export const useApp = () => useContext(Ctx)
 
 export function AppProvider({ children }) {
+  const playback = useSyncExternalStore(playbackOwnership.subscribe, playbackOwnership.getSnapshot)
   const [tab, setTab] = useState('home')
   const [stack, setStack] = useState([]) // navigation stack of {name, id}
   const [route, setRoute] = useState({ name: 'home' })
@@ -67,6 +70,7 @@ export function AppProvider({ children }) {
   const value = useMemo(
     () => ({
       tab,
+      playbackMode: playback.mode,
       switchTab,
       route,
       go,
@@ -89,6 +93,7 @@ export function AppProvider({ children }) {
     }),
     [
       tab,
+      playback,
       route,
       stack,
       sheet,

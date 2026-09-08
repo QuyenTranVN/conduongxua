@@ -49,8 +49,7 @@ export default function Meditate() {
       guidedAudio.toggle()
       return
     }
-    if (!recentSession.audioUrl) playBell(.42)
-    guidedAudio.startSession(recentSession)
+    if (guidedAudio.startSession(recentSession) && !recentSession.audioUrl) playBell(.42)
   }
 
   return (
