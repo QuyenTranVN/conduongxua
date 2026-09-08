@@ -7,3 +7,14 @@ public/audio/
 
 # This is a standalone Cloudflare Workers project, not Vercel Functions.
 /api/
+
+# Local tooling is not part of the deployed frontend.
+.node-portable/
+.node-portable.zip
+.mingit-portable/
+mingit-portable.zip
+vite-dev.stdout.log
+vite-dev.stderr.log
+.env
+.env.*
+!.env.example

@@ -31,8 +31,7 @@ const dhammaPath = (file: string) => encodeURI(`Listen/Thien Su Ajahn Chah/Dharm
 const meditationPath = (file: string) => encodeURI(`Meditation/${file}`)
 const brahmPath = (file: string) => encodeURI(`Meditation/Huong Dan Thien Dinh/Ajahn Brahm/${file}`)
 const chantingPath = (file: string) => encodeURI(`chanting/${file}`)
-// Keep the directory's macOS decomposed Unicode spelling so Vite resolves the real files.
-const ashInSaranaPath = (file: string) => encodeURI(`Listen/Ashin Sarana Thuye\u0302\u0301t Pha\u0301p Tru\u031ba CN/${file}`)
+const ashInSaranaPath = (file: string) => encodeURI(`Listen/Ashin Sarana Thuyết Pháp Trưa CN/${file}`)
 const goenkaTalkPath = (file: string) => encodeURI(`Listen/Thien-Su-Goenka/Tu-Niem-Xu-Giang-Giai/${file}`)
 
 const DAILY_CHANTING = [

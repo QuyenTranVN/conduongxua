@@ -1,9 +1,10 @@
 import { readLocalJson, writeLocalJson } from './localStorageService.js'
+import { getAudioUrl } from './audioStorage.js'
 
 const PREFERENCE_KEY = 'con-duong-xua:silent-ambience'
 const VALID_SOUNDS = new Set(['none', 'rain', 'stream', 'forest', 'white_noise'])
 const DEFAULTS = { lastSilentDuration: 1800, lastBackgroundSound: 'none', lastBackgroundVolume: 0.25 }
-const FILE_SOUND_URLS = {
+export const FILE_SOUND_URLS = {
   rain: '/audio/Meditation/White%20Noise/mixkit-light-rain-loop-1253.wav',
   stream: '/audio/Meditation/White%20Noise/mixkit-thunderstorm-and-clear-rain-2397.wav',
   forest: '/audio/Meditation/White%20Noise/mixkit-campfire-night-wind-1736.wav',
@@ -80,7 +81,8 @@ function createNoiseBuffer(ac, sound) {
 }
 
 async function loadSoundBuffer(ac, sound) {
-  const url = FILE_SOUND_URLS[sound]
+  const path = FILE_SOUND_URLS[sound]
+  const url = path ? getAudioUrl(path) : ''
   if (!url) return createNoiseBuffer(ac, sound)
   if (!fileBufferCache.has(sound)) {
     const response = await fetch(url)

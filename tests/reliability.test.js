@@ -110,3 +110,40 @@ test('Settings drawer contains no account or profile identity UI', async () => {
   assert.match(source, /Cài đặt/)
   assert.match(source, /Settings/)
 })
+
+test('ambient playback fetches and decodes the shared audio path', async () => {
+  const { ambientAudio } = await import('../src/services/ambientSoundService.js')
+  const originalWindow = globalThis.window
+  const originalFetch = globalThis.fetch
+  const requested = []
+  let decoded = false
+  let started = false
+  const node = () => ({ connect() { return this }, disconnect() {}, stop() {}, start() { started = true } })
+  class FakeAudioContext {
+    currentTime = 0
+    destination = {}
+    async resume() {}
+    async decodeAudioData(bytes) { decoded = bytes.byteLength === 4; return { duration: 12 } }
+    createBufferSource() { return node() }
+    createBiquadFilter() { return { ...node(), frequency: { value: 0 } } }
+    createGain() { return { ...node(), gain: { setValueAtTime() {}, linearRampToValueAtTime() {} } } }
+  }
+  globalThis.window = { AudioContext: FakeAudioContext }
+  globalThis.fetch = async (url) => {
+    requested.push(url)
+    return { ok: true, arrayBuffer: async () => new ArrayBuffer(4) }
+  }
+  try {
+    for (const sound of ['rain', 'stream', 'forest']) {
+      assert.equal(await ambientAudio.start(sound), true)
+      ambientAudio.stop(0)
+    }
+    assert.equal(requested.length, 3)
+    assert.ok(requested.every(url => url.startsWith('/audio/Meditation/White%20Noise/')))
+    assert.ok(decoded && started)
+  } finally {
+    ambientAudio.stop(0)
+    globalThis.window = originalWindow
+    globalThis.fetch = originalFetch
+  }
+})

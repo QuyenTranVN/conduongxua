@@ -10,3 +10,5 @@ dist
 .node-portable.zip
 .mingit-portable/
 mingit-portable.zip
+/vite-dev.stdout.log
+/vite-dev.stderr.log

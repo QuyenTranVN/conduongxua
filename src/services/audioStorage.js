@@ -28,5 +28,5 @@ export function resolveAudioUrl(itemOrPath, configuredBase = '') {
 }
 
 export function getAudioUrl(itemOrPath) {
-  return resolveAudioUrl(itemOrPath, import.meta.env.VITE_AUDIO_CDN_URL || '')
+  return resolveAudioUrl(itemOrPath, import.meta.env?.VITE_AUDIO_CDN_URL || '')
 }
