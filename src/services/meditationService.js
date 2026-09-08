@@ -15,7 +15,7 @@ const customSilentSession = (id) => {
   if (!MEDITATION_METHODS.some((method) => method.id === match[1]) || durationSeconds < 60 || durationSeconds > 7200) return null
   return { id, titleVi: 'Thiền im lặng', methodId: match[1], durationSeconds, guidanceType: 'silent', language: 'vi', level: 'custom' }
 }
-const findSession = (id) => apiSessions.get(id) || MEDITATION_SESSIONS.find((session) => session.id === id) || customSilentSession(id)
+const findSession = (id) => apiSessions.get(id) || MEDITATION_SESSIONS.find((session) => session.id === id) || customSilentSession(id) || readSavedSession(id)
 const rememberMethod = (method) => {
   apiMethods.set(method.id, method)
   apiMethods.set(method.slug, method)
@@ -34,6 +34,18 @@ const readHistory = () => {
   return Array.isArray(value) ? value.filter((item) => item && typeof item === 'object') : []
 }
 const recordSessionId = (record) => record?.sessionId || record?.meditationSessionId || record?.id
+const SESSION_FIELDS = ['id', 'slug', 'methodId', 'apiMethodId', 'teacherId', 'teacherName', 'sourceId', 'titleVi', 'titleEn', 'descriptionVi', 'descriptionEn', 'durationSeconds', 'guidanceType', 'language', 'audioUrl', 'audioPath', 'audioCredit', 'isApiContent']
+const sessionSnapshot = (session) => Object.fromEntries(SESSION_FIELDS.filter((key) => typeof session[key] === 'string' || (key === 'durationSeconds' && typeof session[key] === 'number') || (key === 'isApiContent' && typeof session[key] === 'boolean')).map((key) => [key, session[key]]))
+function readSavedSession(id) {
+  if (typeof id !== 'string' || !id) return null
+  const snapshot = readHistory().find((record) => recordSessionId(record) === id)?.sessionSnapshot
+  if (!snapshot || snapshot.id !== id || typeof snapshot.titleVi !== 'string' || !Number.isFinite(snapshot.durationSeconds) || snapshot.durationSeconds <= 0 || snapshot.guidanceType !== 'guided') return null
+  const path = snapshot.audioUrl || snapshot.audioPath
+  // Only durable local/CDN URLs can restore a catalog session after refresh.
+  if (typeof path !== 'string' || !(/^(https?:\/\/|\/audio\/)/i.test(path))) return null
+  try { if (!['http:', 'https:'].includes(new URL(path, 'https://local.invalid').protocol)) return null } catch { return null }
+  return sessionSnapshot(snapshot)
+}
 const normalizeProgress = (record) => {
   const sessionId = recordSessionId(record)
   const session = findSession(sessionId)
@@ -42,7 +54,8 @@ const normalizeProgress = (record) => {
   const progress = Number(record.progressSeconds ?? record.durationCompleted ?? 0)
   if (!Number.isFinite(duration) || duration <= 0 || !Number.isFinite(progress)) return null
   const safeProgress = Math.max(0, Math.min(progress, duration))
-  return { ...record, sessionId, meditationSessionId: sessionId, progressSeconds: safeProgress, durationCompleted: safeProgress, durationSeconds: duration, completed: Boolean(record.completed) || safeProgress >= duration }
+  const selectedDuration = Number(record.selectedDurationSeconds || session.durationSeconds)
+  return { ...record, guidanceType: session.guidanceType, paused: record.paused === true, selectedDurationSeconds: Number.isFinite(selectedDuration) && selectedDuration > 0 ? selectedDuration : session.durationSeconds, sessionId, meditationSessionId: sessionId, progressSeconds: safeProgress, durationCompleted: safeProgress, durationSeconds: duration, completed: Boolean(record.completed) || safeProgress >= duration }
 }
 
 export const meditationService = {
@@ -89,9 +102,10 @@ export const meditationService = {
   getRecommendedSession({ duration, previousMethod, preferredGuidance }) {
     return this.getRecommendedMeditation({ duration, guidanceType: preferredGuidance || 'guided', preferredMethod: previousMethod })
   },
+  getPracticeProgress(sessionId) { return readHistory().filter((record) => recordSessionId(record) === sessionId).map(normalizeProgress).find(Boolean) || null },
   getRecentPractice() { return readHistory().map(normalizeProgress).find(Boolean) || null },
   getContinuePractice() {
-    return readHistory().map(normalizeProgress).find((item) => item && item.updatedAt && !item.completed && item.progressSeconds > 0 && item.progressSeconds < item.durationSeconds) || null
+    return readHistory().map(normalizeProgress).find((item) => item && item.updatedAt && !item.completed && (item.progressSeconds > 0 || item.paused === true) && item.progressSeconds < item.durationSeconds) || null
   },
   getPreferredGuidance() { return readLocalEnum(GUIDANCE_KEY, ['guided', 'silent'], 'guided') },
   savePreferredGuidance(guidanceType) { writeLocalValue(GUIDANCE_KEY, guidanceType === 'silent' ? 'silent' : 'guided') },
@@ -106,7 +120,7 @@ export const meditationService = {
   savePracticeSession(practice) {
     const normalized = normalizeProgress(practice)
     if (!normalized) return false
-    const timestampedPractice = { ...normalized, updatedAt: new Date().toISOString() }
+    const timestampedPractice = { ...normalized, sessionSnapshot: sessionSnapshot(findSession(normalized.sessionId)), updatedAt: new Date().toISOString() }
     return writeLocalJson(HISTORY_KEY, [timestampedPractice, ...readHistory().filter((item) => recordSessionId(item) !== normalized.sessionId)].slice(0, 20))
   },
 }

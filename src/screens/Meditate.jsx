@@ -43,7 +43,7 @@ export default function Meditate() {
     setQuickMinutes(null)
     go('session', JSON.stringify({ sessionId: session.id, minutes: session.durationSeconds / 60, restart: true, bells: { beginning: !ambience?.beginningBellHandled, interval: false, ending: true }, ambience }))
   }
-  const openContinuePractice = () => go('session', JSON.stringify({ sessionId: recentSession.id, minutes: recentSession.durationSeconds / 60, bells: { beginning: false, interval: false, ending: true } }))
+  const openContinuePractice = () => go('session', JSON.stringify({ sessionId: recentSession.id, minutes: (recent.selectedDurationSeconds || recentSession.durationSeconds) / 60, autoplay: false, bells: { beginning: false, interval: false, ending: true } }))
   const toggleContinuePractice = () => {
     if (guidedAudio.sessionId === recentSession.id) {
       guidedAudio.toggle()

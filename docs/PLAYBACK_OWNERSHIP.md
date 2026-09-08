@@ -9,9 +9,12 @@ The ownership service synchronously asks the previous controller to save its
 current position and pause before granting the next controller a new lease.
 Paused sessions remain available to their existing continuation controls.
 Switching between listening recordings saves the outgoing element's ID and
-position before changing its source. Explicit Stop/Close behavior remains as
-before: closing a silent session discards it; closing guided playback can leave
-it running until paused or interrupted by another mode.
+position before changing its source. Closing either meditation type pauses and preserves it; the explicit silent Stop button still discards it.
+Closing meditation now pauses and saves it; it does not reset progress or
+complete the practice. Opening Continue Practice restores the same session
+and position paused, including after refresh. Its existing play control can
+still explicitly resume playback. Saved records include paused state, selected
+duration and a validated session snapshot for catalog sessions.
 
 Bells belong to the current session. A handoff cancels scheduled bells,
 oscillator tails, pending ambience loads/resumes, and fading ambience. Late
@@ -72,3 +75,16 @@ policies. Progress persistence depends on local storage being available.
 Desktop Edge and mobile viewport/touch emulation were exercised; physical iOS
 Safari and Android lock-screen behavior still require device testing. Existing
 background timer/visibility policy is outside this ownership change.
+
+## Guided close validation
+
+Additional tests: `tests/guided-continuation.test.js` and `tests/guided-close.browser.cjs`.
+Close saves without completing, paused seeking is retained, and Continue restores paused after refresh even before the catalog is available. Opening or closing that paused practice leaves Nghe playing independently; explicitly resuming meditation hands ownership back. Closing during a pending audio load also stays paused and resumable at zero.
+
+Validated with 22 unit tests, desktop and mobile viewport guided-close journeys, the existing desktop ownership journeys, and a production build. No player markup or styles changed.
+
+## Silent close continuation
+
+Silent Close uses the shared pause/save path, stops ambience and bells, and retains original duration, elapsed time (remaining = duration minus elapsed), sound, volume and paused state. Normalized continuation records identify `guidanceType`. The silent countdown reads the shared provider clock so reopening shows saved progress accurately. Continue opens paused for both types; its explicit play control can resume. Layout and styles are unchanged.
+
+Affected files: `src/screens/Session.jsx`, `src/screens/Meditate.jsx`, `src/services/meditationService.js` and `tests/silent-close.browser.cjs`. The browser test checks close, a frozen countdown, refresh, restored rain at the selected volume, explicit resume and Nghe independence.

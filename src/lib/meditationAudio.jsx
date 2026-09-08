@@ -29,7 +29,7 @@ export function MeditationAudioProvider({ children }) {
   const save = useCallback((completed = false) => {
     const r = runtime.current
     if (!r.session || !r.total) return
-    const progress = { sessionId: r.session.id, meditationSessionId: r.session.id, startedAt: r.startedAt, progressSeconds: r.time, durationSeconds: r.total, durationCompleted: r.time, completed, ambience: r.ambience }
+    const progress = { sessionId: r.session.id, meditationSessionId: r.session.id, startedAt: r.startedAt, progressSeconds: r.time, durationSeconds: r.total, durationCompleted: r.time, completed, paused: !r.playing, selectedDurationSeconds: r.session.durationSeconds, ambience: r.ambience }
     completed ? meditationService.completeSession(progress) : meditationService.saveProgress(progress)
   }, [])
   const captureTime = useCallback(() => {
@@ -63,8 +63,19 @@ export function MeditationAudioProvider({ children }) {
   usePlaybackRegistration('silentMeditation', interrupt)
   const pause = useCallback(() => {
     const r = runtime.current
-    if (r.session) playbackOwnership.pause(modeFor(r.session))
-  }, [])
+    if (!r.session) return
+    if (playbackOwnership.owns(modeFor(r.session))) playbackOwnership.pause(modeFor(r.session))
+    else {
+      // Closing an already paused/seeking practice must save too, without
+      // interrupting Nghe or any other owner.
+      captureTime()
+      r.playing = false
+      r.request += 1
+      audioRef.current?.pause()
+      setPlaying(false)
+      save(r.time >= r.total && r.total > 0)
+    }
+  }, [captureTime, save])
 
   const playMedia = useCallback(() => {
     const r = runtime.current
@@ -87,7 +98,7 @@ export function MeditationAudioProvider({ children }) {
     })
   }, [errors.meditationPlay, pause])
 
-  const startSession = useCallback((nextSession, { restart = false, ambience, beginningBell = false } = {}) => {
+  const startSession = useCallback((nextSession, { restart = false, ambience, beginningBell = false, autoplay = true } = {}) => {
     if (!nextSession) return false
     if (nextSession.guidanceType === 'guided' && !hasPlayableAudio(nextSession)) {
       setError(errors.meditationUnavailable)
@@ -95,21 +106,21 @@ export function MeditationAudioProvider({ children }) {
     }
     const r = runtime.current
     if (r.session && playbackOwnership.owns(modeFor(r.session))) interrupt()
-    const lease = playbackOwnership.acquire(modeFor(nextSession))
-    const saved = meditationService.getContinuePractice()
+    const lease = autoplay ? playbackOwnership.acquire(modeFor(nextSession)) : null
+    const saved = meditationService.getPracticeProgress(nextSession.id)
     const sameSession = r.session?.id === nextSession.id
-    const resumesSaved = !restart && saved?.meditationSessionId === nextSession.id
+    const resumesSaved = !restart && saved && !saved.completed
     const resumeAt = restart ? 0 : sameSession ? r.time : resumesSaved ? saved.progressSeconds : 0
     if (restart) meditationService.discardPractice(nextSession.id)
     ambientAudio.stop(0)
     r.session = nextSession
     r.time = resumeAt
-    r.total = nextSession.durationSeconds
+    r.total = resumesSaved ? saved.durationSeconds : nextSession.durationSeconds
     r.startedAt = !restart && sameSession ? r.startedAt : resumesSaved ? saved.startedAt : new Date().toISOString()
     r.ambience = nextSession.guidanceType === 'silent'
       ? { backgroundSound: ambience?.backgroundSound ?? (sameSession && !restart ? r.ambience.backgroundSound : saved?.ambience?.backgroundSound) ?? 'none', backgroundVolume: ambience?.backgroundVolume ?? (sameSession && !restart ? r.ambience.backgroundVolume : saved?.ambience?.backgroundVolume) ?? .25 }
       : { backgroundSound: 'none', backgroundVolume: .25 }
-    r.playing = true
+    r.playing = autoplay
     r.lease = lease
     r.tickAt = Date.now()
     ambienceFadeStarted.current = false
@@ -117,8 +128,9 @@ export function MeditationAudioProvider({ children }) {
     setSessionId(nextSession.id)
     setCurrentTime(r.time)
     setDuration(r.total)
-    setPlaying(true)
+    setPlaying(autoplay)
     setError('')
+    if (!autoplay) return true
     if (nextSession.guidanceType === 'guided') playMedia()
     else {
       if (beginningBell) playBellSequence(3, .55)
@@ -254,7 +266,7 @@ export function MeditationAudioProvider({ children }) {
     }}
     onTimeUpdate={(event) => {
       const r = runtime.current
-      if (r.session?.guidanceType !== 'guided' || event.currentTarget.dataset.id !== r.session.id) return
+      if (r.session?.guidanceType !== 'guided' || event.currentTarget.dataset.id !== r.session.id || event.currentTarget.readyState < 1) return
       r.time = event.currentTarget.currentTime
       setCurrentTime(r.time)
       const second = Math.floor(r.time)

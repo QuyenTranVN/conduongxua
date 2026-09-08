@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef } from 'react'
 import Icon from '../components/Icon.jsx'
 import Img from '../components/Img.jsx'
 import Scrubber from '../components/Scrubber.jsx'
@@ -38,8 +38,7 @@ export default function Session({ param }) {
   const activated = useRef(false)
   const isGuided = session.guidanceType === 'guided'
   const isActiveSession = guidedAudio.sessionId === session.id
-  const [silentDisplayTime, setSilentDisplayTime] = useState(0)
-  const shownTime = isGuided ? guidedAudio.currentTime : silentDisplayTime
+  const shownTime = guidedAudio.currentTime
   const shownLeft = isActiveSession ? Math.max(0, total - shownTime) : total
   const elapsed = total - shownLeft
   const effectiveRunning = isActiveSession && guidedAudio.playing
@@ -52,28 +51,13 @@ export default function Session({ param }) {
   useEffect(() => {
     if (activated.current) return
     activated.current = true
-    if (cfg.restart || guidedAudio.sessionId !== session.id) guidedAudio.startSession(session, { restart: Boolean(cfg.restart), ambience: cfg.ambience, beginningBell: !isGuided && cfg.bells?.beginning })
+    if (cfg.restart || guidedAudio.sessionId !== session.id) guidedAudio.startSession(session, { restart: Boolean(cfg.restart), ambience: cfg.ambience, beginningBell: !isGuided && cfg.bells?.beginning, autoplay: cfg.autoplay !== false })
   }, [session, cfg, isGuided, guidedAudio.sessionId, guidedAudio.startSession])
 
-  useEffect(() => {
-    if (isGuided || !isActiveSession) {
-      setSilentDisplayTime(0)
-      return
-    }
-
-    setSilentDisplayTime(guidedAudio.currentTime)
-    if (!guidedAudio.playing) return
-
-    const clockStartedAt = performance.now() - guidedAudio.currentTime * 1000
-    const timer = window.setInterval(() => {
-      const elapsedSeconds = (performance.now() - clockStartedAt) / 1000
-      setSilentDisplayTime(Math.min(total, elapsedSeconds))
-    }, 200)
-
-    return () => window.clearInterval(timer)
-  }, [isGuided, isActiveSession, guidedAudio.playing, total])
-
-  const close = () => { if (!isGuided) { guidedAudio.stopSession() } back() }
+  const close = () => {
+    guidedAudio.pause()
+    back()
+  }
   const stop = () => { guidedAudio.stopSession(); back() }
   const seekGuidedTo = (seconds) => {
     if (!isGuided) return
